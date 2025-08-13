@@ -1,10 +1,11 @@
 function fetchHelloCashArticles() {
   // Define API endpoint and authentication token
   var apiUrl = "https://api.hellocash.business/api/v1/articles?limit=250&offset=1&caid=&name=&code=";
+  var token = getApiKey();
   
   // Set up headers for the API request
   var headers = {
-    "Authorization": "Bearer " + getApiKey(),
+    "Authorization": "Bearer " + token,
     "Content-Type": "application/json",
     "Accept": "application/json"
   };
@@ -37,10 +38,10 @@ function fetchHelloCashArticles() {
       // Get the spreadsheet and sheet
       var spreadsheetId = "1YFuNAX3ZnUA5RaNezeiERHUxkTg0MnoHWA1zmbyFXvE";
       var spreadsheet = SpreadsheetApp.openById(spreadsheetId);
-      var sheet = spreadsheet.getSheetByName("Inventory");
+      var sheet = spreadsheet.getSheetByName("Articles");
       
       if (!sheet) {
-        throw new Error("Sheet 'Inventory' not found in the spreadsheet.");
+        throw new Error("Sheet 'Articles' not found in the spreadsheet.");
       }
       
       // Clear existing content (except headers)
@@ -97,7 +98,7 @@ function fetchHelloCashArticles() {
 function fetchHelloCashInvoices() {
   // Define API endpoint and authentication token
   var apiUrl = "https://api.hellocash.business/api/v1/invoices?limit=250&offset=1";
-  var token = getApiKey(); // Replace with a valid token if needed
+  var token = getApiKey();
   
   // Set up headers for the API request
   var headers = {
@@ -148,12 +149,17 @@ function fetchHelloCashInvoices() {
         // Prepare headers based on assumed invoice fields
         var headers = [
           "Invoice ID",
-          "Date",
-          "Total Net",
+          "Timestamp",
+          "Invoice Number",
+          "Cashier",
+          "Payment Method",
           "Total Gross",
-          "Customer Name",
-          "Status",
-          "Payment Method"
+          "Discount",
+          "Cancellation",
+          "Tax Rate",
+          "Tax Gross",
+          "Tax Net",
+          "Tax Amount"
         ];
         sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
         
@@ -161,12 +167,17 @@ function fetchHelloCashInvoices() {
         var data = json.invoices.map(function(invoice) {
           return [
             invoice.invoice_id || "",
-            invoice.date || "",
-            invoice.total_net || 0,
-            invoice.total_gross || 0,
-            invoice.customer_name || "",
-            invoice.status || "",
-            invoice.payment_method || ""
+            invoice.invoice_timestamp || "",
+            invoice.invoice_number || "",
+            invoice.invoice_cashier || "",
+            invoice.invoice_payment || "",
+            invoice.invoice_total || 0,
+            invoice.invoice_discount || 0,
+            invoice.invoice_cancellation || 0,
+            invoice.taxes[0].tax_taxRate || 0,
+            invoice.taxes[0].tax_gross || 0,
+            invoice.taxes[0].tax_net || 0,
+            invoice.taxes[0].tax_tax || 0
           ];
         });
         

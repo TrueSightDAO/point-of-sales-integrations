@@ -49,12 +49,12 @@ The repository currently includes adapters for the following POS systems (additi
 
 ### Example: HelloCash Adapter
 The `HelloCashAPI.gs` script integrates with the HelloCash POS system to:
-- Fetch articles and write them to an "Inventory" sheet.
+- Fetch articles and write them to an "Articles" sheet.
 - Fetch invoices and write them to an "Invoices" sheet.
 - Support SunMint contributions by logging sales events for future integration with the DApp module.
 
 To use:
-1. Set up a Google Sheet with "Inventory" and "Invoices" tabs.
+1. Set up a Google Sheet with "Articles" and "Invoices" tabs.
 2. Add your HelloCash API token to the `getApiKey` function.
 3. Run `fetchHelloCashArticles` or `fetchHelloCashInvoices` to sync data.
 

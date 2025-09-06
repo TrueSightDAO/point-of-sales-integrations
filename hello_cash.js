@@ -365,6 +365,14 @@ function fetchHelloCashEmployees() {
 // To search for articles by name:
 //   - Call: https://script.google.com/macros/s/<your-script-id>/exec?mode=articles&search=<search-string>
 //   - Returns JSON array of objects with article_id and article_name where article_name contains the search string (case-insensitive)
+
+// Helper function to create CORS-enabled response
+function createCORSResponse(data) {
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
 function doGet(e) {
   try {
     var spreadsheetId = "1YFuNAX3ZnUA5RaNezeiERHUxkTg0MnoHWA1zmbyFXvE";
@@ -387,8 +395,7 @@ function doGet(e) {
       
       var lastRow = sheet.getLastRow();
       if (lastRow <= 1) {
-        return ContentService.createTextOutput(JSON.stringify([]))
-          .setMimeType(ContentService.MimeType.JSON);
+        return createCORSResponse([]);
       }
       
       // Get article IDs (column 1) and names (column 2)
@@ -405,8 +412,7 @@ function doGet(e) {
           };
         });
       
-      return ContentService.createTextOutput(JSON.stringify(results))
-        .setMimeType(ContentService.MimeType.JSON);
+      return createCORSResponse(results);
     } else if (mode === "employees") {
       // Return full list of employees
       var sheet = spreadsheet.getSheetByName("Employees");
@@ -416,8 +422,7 @@ function doGet(e) {
       
       var lastRow = sheet.getLastRow();
       if (lastRow <= 1) {
-        return ContentService.createTextOutput(JSON.stringify([]))
-          .setMimeType(ContentService.MimeType.JSON);
+        return createCORSResponse([]);
       }
       
       // Get employee IDs (column 1), names (column 2), and updated_at (column 3)
@@ -430,14 +435,12 @@ function doGet(e) {
         };
       });
       
-      return ContentService.createTextOutput(JSON.stringify(results))
-        .setMimeType(ContentService.MimeType.JSON);
+      return createCORSResponse(results);
     } else {
       throw new Error("Invalid mode parameter. Use 'employees' or 'articles'.");
     }
   } catch (error) {
     Logger.log("doGet Error: " + error.message);
-    return ContentService.createTextOutput(JSON.stringify({ error: error.message }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return createCORSResponse({ error: error.message });
   }
 }

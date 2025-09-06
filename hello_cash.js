@@ -413,6 +413,29 @@ function doGet(e) {
         });
       
       return createCORSResponse(results);
+    } else if (mode === "list_articles") {
+      // Return full list of articles with ID, name, and UPC code
+      var sheet = spreadsheet.getSheetByName("Articles");
+      if (!sheet) {
+        throw new Error("Sheet 'Articles' not found in the spreadsheet.");
+      }
+      
+      var lastRow = sheet.getLastRow();
+      if (lastRow <= 1) {
+        return createCORSResponse([]);
+      }
+      
+      // Get article IDs (column A), names (column B), and UPC codes (column K)
+      var data = sheet.getRange(2, 1, lastRow - 1, 11).getValues(); // Get columns A through K
+      var results = data.map(function(row) {
+        return {
+          article_id: String(row[0]),
+          article_name: String(row[1]),
+          upc_code: String(row[10]) // Column K (index 10)
+        };
+      });
+      
+      return createCORSResponse(results);
     } else if (mode === "employees") {
       // Return full list of employees
       var sheet = spreadsheet.getSheetByName("Employees");
@@ -437,7 +460,7 @@ function doGet(e) {
       
       return createCORSResponse(results);
     } else {
-      throw new Error("Invalid mode parameter. Use 'employees' or 'articles'.");
+      throw new Error("Invalid mode parameter. Use 'employees', 'articles', or 'list_articles'.");
     }
   } catch (error) {
     Logger.log("doGet Error: " + error.message);

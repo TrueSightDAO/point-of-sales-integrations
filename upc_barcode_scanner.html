@@ -693,22 +693,16 @@
 
                 const data = await response.json();
                 
-                // Assuming the API returns data in a specific format
-                // Adjust this based on the actual API response structure
-                if (data.articles && Array.isArray(data.articles)) {
-                    inventoryData = data.articles;
-                } else if (Array.isArray(data)) {
-                    inventoryData = data;
-                } else {
-                    throw new Error('Invalid data format received from API');
-                }
+                // Store articles globally and in inventoryData for compatibility
+                window.articles = data;
+                inventoryData = data;
 
                 statusIndicator.className = 'status-indicator loaded';
                 statusText.textContent = 'Loaded';
-                itemCount.textContent = inventoryData.length;
+                itemCount.textContent = data.length;
                 lastUpdated.textContent = new Date().toLocaleTimeString();
 
-                showAlert(`Successfully loaded ${inventoryData.length} inventory items`, 'success');
+                showAlert(`Successfully loaded ${data.length} inventory items`, 'success');
 
             } catch (error) {
                 console.error('Error loading inventory:', error);
@@ -728,7 +722,7 @@
                 return;
             }
 
-            if (inventoryData.length === 0) {
+            if (!window.articles || window.articles.length === 0) {
                 showAlert('Inventory not loaded. Please refresh inventory first.', 'error');
                 return;
             }
@@ -747,19 +741,9 @@
 
         // Find product by UPC code
         function findProductByUPC(upcCode) {
-            // Look for exact match in column K (index 10)
-            const exactMatch = inventoryData.find(item => {
-                // Handle different possible data structures
-                if (Array.isArray(item)) {
-                    return item[10] && item[10].toString().trim() === upcCode;
-                } else if (typeof item === 'object') {
-                    // Try different possible column names
-                    return (item.UPC && item.UPC.toString().trim() === upcCode) ||
-                           (item.upc && item.upc.toString().trim() === upcCode) ||
-                           (item.barcode && item.barcode.toString().trim() === upcCode) ||
-                           (item['Column K'] && item['Column K'].toString().trim() === upcCode);
-                }
-                return false;
+            // Look for exact match using the new list_articles data structure
+            const exactMatch = window.articles.find(item => {
+                return item.upc_code && item.upc_code.toString().trim() === upcCode;
             });
 
             if (exactMatch) {
@@ -767,14 +751,8 @@
             }
 
             // Look for partial matches
-            const partialMatches = inventoryData.filter(item => {
-                let upcField = '';
-                if (Array.isArray(item)) {
-                    upcField = item[10] ? item[10].toString() : '';
-                } else if (typeof item === 'object') {
-                    upcField = item.UPC || item.upc || item.barcode || item['Column K'] || '';
-                    upcField = upcField.toString();
-                }
+            const partialMatches = window.articles.filter(item => {
+                const upcField = item.upc_code ? item.upc_code.toString() : '';
                 return upcField.includes(upcCode) || upcCode.includes(upcField);
             });
 
@@ -859,23 +837,17 @@
 
         // Get product display name
         function getProductDisplayName(product) {
-            if (Array.isArray(product)) {
-                return product[0] || product[1] || 'Unknown Product';
-            } else if (typeof product === 'object') {
-                return product.name || product.Name || product.title || product.Title || product[0] || 'Unknown Product';
+            if (typeof product === 'object') {
+                return product.article_name || product.name || product.Name || product.title || product.Title || 'Unknown Product';
             }
             return 'Unknown Product';
         }
 
         // Get product details
         function getProductDetails(product) {
-            if (Array.isArray(product)) {
-                return product.slice(1, 5).filter(detail => detail).join(' | ');
-            } else if (typeof product === 'object') {
+            if (typeof product === 'object') {
                 const details = [];
-                if (product.description) details.push(product.description);
-                if (product.price) details.push(`Price: $${product.price}`);
-                if (product.category) details.push(`Category: ${product.category}`);
+                if (product.article_id) details.push(`ID: ${product.article_id}`);
                 return details.join(' | ');
             }
             return 'No additional details available';
@@ -883,10 +855,8 @@
 
         // Get product UPC
         function getProductUPC(product) {
-            if (Array.isArray(product)) {
-                return product[10] || 'N/A';
-            } else if (typeof product === 'object') {
-                return product.UPC || product.upc || product.barcode || product['Column K'] || 'N/A';
+            if (typeof product === 'object') {
+                return product.upc_code || product.UPC || product.upc || product.barcode || 'N/A';
             }
             return 'N/A';
         }
@@ -1002,7 +972,8 @@
         // Load articles from API
         async function loadArticles() {
             try {
-                const response = await fetch('https://script.google.com/macros/s/AKfycbzH5eV1cPLEViYvBLrduMsv83xxN5PlOsShNZFHKEgMzuwLM5AdzarvG8RXxHJgH9_P/exec?mode=articles');
+                // Load all articles with ID, name, and UPC code
+                const response = await fetch('https://script.google.com/macros/s/AKfycbzH5eV1cPLEViYvBLrduMsv83xxN5PlOsShNZFHKEgMzuwLM5AdzarvG8RXxHJgH9_P/exec?mode=list_articles');
                 const articles = await response.json();
                 
                 // Store articles globally for searching

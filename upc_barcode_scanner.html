@@ -579,6 +579,21 @@
                 z-index: 1003;
             }
             
+            .product-selection-section {
+                margin: 15px 0;
+                padding: 15px;
+            }
+            
+            .selection-actions {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .selection-actions .btn {
+                width: 100%;
+                min-width: auto;
+            }
+            
             .autocomplete-item {
                 padding: 10px 12px;
             }
@@ -1733,13 +1748,13 @@
 
         // Prompt user to enter product name for unmatched UPC
         function promptForProductName(upcCode) {
-            // Store the UPC code for the modal
+            // Store the UPC code for the inline section
             window.currentUPC = upcCode;
             
-            // Show the modal
-            document.getElementById('modalUPC').textContent = upcCode;
+            // Show the inline section
+            document.getElementById('inlineUPC').textContent = upcCode;
             document.getElementById('productNameInput').value = '';
-            document.getElementById('productNameModal').style.display = 'flex';
+            document.getElementById('productSelectionSection').style.display = 'block';
             
             // Setup autocomplete functionality
             setupAutocomplete();
@@ -1869,11 +1884,12 @@
             });
         }
 
-        // Close the product name modal
-        function closeProductNameModal() {
-            document.getElementById('productNameModal').style.display = 'none';
+        // Cancel product selection
+        function cancelProductSelection() {
+            document.getElementById('productSelectionSection').style.display = 'none';
             document.getElementById('autocompleteDropdown').style.display = 'none';
             window.currentUPC = null;
+            window.selectedProduct = null;
         }
 
         // Save the product name
@@ -1959,9 +1975,9 @@
                 addToRecentScans(upcCode, tempProduct, 'manual');
             }
             
-            // Clear the selected product and close the modal
+            // Clear the selected product and close the inline section
             window.selectedProduct = null;
-            closeProductNameModal();
+            cancelProductSelection();
         }
 
         // Mobile-specific optimizations
@@ -1999,9 +2015,9 @@
             // Handle modal keyboard events
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
-                    const modal = document.getElementById('productNameModal');
-                    if (modal && modal.style.display === 'flex') {
-                        closeProductNameModal();
+                    const section = document.getElementById('productSelectionSection');
+                    if (section && section.style.display === 'block') {
+                        cancelProductSelection();
                     }
                 }
                 

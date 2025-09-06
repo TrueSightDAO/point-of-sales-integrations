@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digital Signature Creator - POS Integrations</title>
+    <title>Digital Signature Manager - POS Integrations</title>
     <style>
         * {
             margin: 0;
@@ -94,6 +94,7 @@
             border-radius: 12px;
             padding: 20px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 120px; /* Space for fixed button area */
         }
 
         .form-group {
@@ -271,6 +272,65 @@
             margin-bottom: 5px;
         }
 
+        .current-signature-section {
+            background: #e8f5e8;
+            border: 2px solid #27ae60;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .current-signature-section h3 {
+            color: #27ae60;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .signature-display {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #bdc3c7;
+        }
+
+        .signature-display p {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .signature-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+            margin: 10px 0;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        .button-area {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #dee2e6;
+            padding: 20px;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .button-area .btn {
+            margin: 0;
+            min-width: 200px;
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .container {
@@ -291,6 +351,17 @@
                 left: auto;
                 margin-bottom: 20px;
             }
+
+            .button-area {
+                padding: 15px;
+                flex-direction: column;
+            }
+
+            .button-area .btn {
+                min-width: auto;
+                width: 100%;
+                margin-bottom: 10px;
+            }
         }
     </style>
 </head>
@@ -306,19 +377,29 @@
                     <option value="upc_barcode_scanner.html">📱 UPC Barcode Scanner</option>
                 </select>
             </div>
-            <h1>🔐 Digital Signature Creator</h1>
-            <p>Generate secure digital signatures for your transactions and documents</p>
+            <h1>🔐 Digital Signature Manager</h1>
+            <p>Generate and manage your digital signature for sales reporting</p>
         </div>
 
         <div class="main-content">
             <div class="instructions">
                 <h4>How to use:</h4>
                 <ul>
-                    <li>Enter your name and the content you want to sign</li>
-                    <li>Click "Generate Signature" to create a unique digital signature</li>
-                    <li>Copy the signature and use it in your documents</li>
-                    <li>Others can verify your signature using our verification system</li>
+                    <li>Select your name from the employee dropdown</li>
+                    <li>Click "Generate Signature" to create your digital signature</li>
+                    <li>Your signature will be saved locally for sales reporting</li>
+                    <li>Use the scanner to report sales with your signature</li>
                 </ul>
+            </div>
+
+            <!-- Current Signature Display -->
+            <div class="current-signature-section" id="currentSignatureSection" style="display: none;">
+                <h3>Current Digital Signature</h3>
+                <div class="signature-display">
+                    <p><strong>Employee:</strong> <span id="currentEmployeeName"></span></p>
+                    <p><strong>Signature:</strong></p>
+                    <div class="signature-box" id="currentSignatureBox"></div>
+                </div>
             </div>
 
             <div class="alert alert-success" id="successAlert"></div>
@@ -332,13 +413,6 @@
                     </select>
                 </div>
 
-                <div class="form-group">
-                    <label for="contentToSign">Content to Sign:</label>
-                    <textarea id="contentToSign" name="contentToSign" placeholder="Enter the text, document, or transaction details you want to sign..." required></textarea>
-                </div>
-
-                <button type="submit" class="btn">Generate Signature</button>
-                <button type="button" class="btn btn-secondary" onclick="clearForm()">Clear Form</button>
             </form>
 
             <div class="loading" id="loading">
@@ -349,8 +423,6 @@
             <div class="result-section" id="resultSection">
                 <h3>✅ Your Digital Signature</h3>
                 <div class="signature-display" id="signatureDisplay"></div>
-                <button class="copy-btn" onclick="copySignature()">📋 Copy Signature</button>
-                <button class="btn btn-success" onclick="downloadSignature()">💾 Download as Text</button>
                 
                 <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
                     <h4 style="color: #34495e; margin-bottom: 10px;">📝 Signature Details:</h4>
@@ -360,6 +432,14 @@
                     <p><strong>Content Hash:</strong> <span id="hashDisplay"></span></p>
                 </div>
             </div>
+        </div>
+
+        <!-- Unified Button Area -->
+        <div class="button-area">
+            <button id="generateButton" class="btn" onclick="handleGenerateSignature()" style="display: none;">Generate Signature</button>
+            <button id="registerButton" class="btn" onclick="registerSignature()" style="display: none;">📧 Register with Admin</button>
+            <button id="registerCurrentButton" class="btn" onclick="registerCurrentSignature()" style="display: none;">📧 Register with Admin</button>
+            <button id="regenerateButton" class="btn btn-secondary" onclick="regenerateSignature()" style="display: none;">🔄 Regenerate Signature</button>
         </div>
     </div>
 
@@ -427,65 +507,32 @@
             }, 5000);
         }
 
-        // Copy signature to clipboard
-        function copySignature() {
-            const signatureDisplay = document.getElementById('signatureDisplay');
-            const signature = signatureDisplay.textContent;
+        // Register signature with admin (following dapp pattern)
+        function registerSignature() {
+            const signature = document.getElementById('signatureDisplay').textContent;
+            const signer = document.getElementById('signerDisplay').textContent;
             
-            navigator.clipboard.writeText(signature).then(() => {
-                showAlert('Signature copied to clipboard!', 'success');
-            }).catch(err => {
-                // Fallback for older browsers
-                const textArea = document.createElement('textarea');
-                textArea.value = signature;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                showAlert('Signature copied to clipboard!', 'success');
+            const shareText = `[DIGITAL SIGNATURE EVENT]
+This is my digital signature for sales reporting which you can use to verify my requests
+
+DIGITAL SIGNATURE: ${signature}
+EMPLOYEE NAME: ${signer}
+PURPOSE: Sales Reporting
+
+This submission was generated using ${window.location.href}`;
+            
+            const emailSubject = encodeURIComponent('Register my Digital Signature for Sales Reporting');
+            const emailBody = encodeURIComponent(shareText);
+            const mailtoLink = `mailto:admin@truesight.me?subject=${emailSubject}&body=${emailBody}`;
+            const whatsappLink = `https://wa.me/14423405782?text=${encodeURIComponent(shareText)}`;
+
+            navigator.clipboard.writeText(shareText).then(() => {
+                showAlert('Signature copied to clipboard! Please send an email to admin@truesight.me with the subject "Register my Digital Signature for Sales Reporting" and paste the copied text in the email body, or send it via WhatsApp to our program administrator at +1 442 340 5782. You will receive a confirmation once your signature is registered.', 'success');
+            }).catch(error => {
+                showAlert('Error copying to clipboard: ' + error + '. Please manually copy the signature below and email it to admin@truesight.me with the subject "Register my Digital Signature for Sales Reporting", or send it via WhatsApp to our program administrator at +1 442 340 5782. You will receive a confirmation once your signature is registered.', 'error');
             });
         }
 
-        // Download signature as text file
-        function downloadSignature() {
-            const signature = document.getElementById('signatureDisplay').textContent;
-            const signer = document.getElementById('signerDisplay').textContent;
-            const timestamp = document.getElementById('timestampDisplay').textContent;
-            
-            const content = `Digital Signature
-========================
-Signer: ${signer}
-Timestamp: ${timestamp}
-Purpose: ${document.getElementById('purposeDisplay').textContent}
-
-Signature:
-${signature}
-
-Content Hash: ${document.getElementById('hashDisplay').textContent}
-
-Generated by POS Digital Signature Creator
-${new Date().toLocaleString()}`;
-            
-            const blob = new Blob([content], { type: 'text/plain' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `signature_${signer.replace(/\s+/g, '_')}_${Date.now()}.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-            
-            showAlert('Signature downloaded successfully!', 'success');
-        }
-
-        // Clear form
-        function clearForm() {
-            document.getElementById('signatureForm').reset();
-            document.getElementById('resultSection').style.display = 'none';
-            document.getElementById('successAlert').style.display = 'none';
-            document.getElementById('errorAlert').style.display = 'none';
-        }
 
         // Go back to main page
         function goBack() {
@@ -521,16 +568,12 @@ ${new Date().toLocaleString()}`;
             }
         }
 
-        // Handle form submission
-        document.getElementById('signatureForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
+        // Generate signature function (called by button)
+        function handleGenerateSignature() {
             const signerName = document.getElementById('signerName').value.trim();
-            const contentToSign = document.getElementById('contentToSign').value.trim();
-            const purpose = document.getElementById('purpose').value.trim();
             
-            if (!signerName || !contentToSign) {
-                showAlert('Please fill in all required fields.', 'error');
+            if (!signerName) {
+                showAlert('Please select your name from the dropdown.', 'error');
                 return;
             }
             
@@ -541,36 +584,117 @@ ${new Date().toLocaleString()}`;
             // Simulate processing time
             setTimeout(() => {
                 try {
-                    const result = generateSignature(signerName, contentToSign, purpose);
+                    // Generate signature for sales reporting
+                    const result = generateSignature(signerName, 'SALES_REPORTING_SIGNATURE', 'Sales Reporting');
                     
-                    // Display results
-                    document.getElementById('signatureDisplay').textContent = result.signature;
-                    document.getElementById('signerDisplay').textContent = result.data.signer;
-                    document.getElementById('purposeDisplay').textContent = result.data.purpose;
-                    document.getElementById('timestampDisplay').textContent = result.data.timestamp;
-                    document.getElementById('hashDisplay').textContent = result.data.contentHash;
+                    // Save to localStorage for sales reporting
+                    localStorage.setItem('userDigitalSignature', result.signature);
+                    localStorage.setItem('employeeName', signerName);
                     
+                    // Hide loading and form, show current signature section
                     document.getElementById('loading').style.display = 'none';
-                    document.getElementById('resultSection').style.display = 'block';
+                    document.getElementById('signatureForm').style.display = 'none';
+                    displayCurrentSignature(signerName, result.signature);
                     
-                    showAlert('Digital signature generated successfully!', 'success');
+                    // Update button visibility
+                    document.getElementById('generateButton').style.display = 'none';
+                    document.getElementById('registerButton').style.display = 'none';
+                    document.getElementById('registerCurrentButton').style.display = 'block';
+                    document.getElementById('regenerateButton').style.display = 'block';
+                    
+                    showAlert('Digital signature generated and saved for sales reporting!', 'success');
                 } catch (error) {
                     document.getElementById('loading').style.display = 'none';
                     showAlert('Error generating signature: ' + error.message, 'error');
                 }
             }, 1500);
-        });
+        }
 
-        // Auto-resize textarea
-        document.getElementById('contentToSign').addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = this.scrollHeight + 'px';
-        });
 
         // Load employees when page loads
         document.addEventListener('DOMContentLoaded', function() {
             loadEmployees();
+            checkExistingSignature();
         });
+
+        // Check for existing signature in localStorage
+        function checkExistingSignature() {
+            const digitalSignature = localStorage.getItem('userDigitalSignature');
+            const employeeName = localStorage.getItem('employeeName');
+            
+            if (digitalSignature && employeeName) {
+                displayCurrentSignature(employeeName, digitalSignature);
+                // Hide the form when signature exists
+                document.getElementById('signatureForm').style.display = 'none';
+                // Show regenerate and register buttons
+                document.getElementById('regenerateButton').style.display = 'inline-block';
+                document.getElementById('registerCurrentButton').style.display = 'inline-block';
+                document.getElementById('generateButton').style.display = 'none';
+                document.getElementById('registerButton').style.display = 'none';
+            } else {
+                // Show the form when no signature exists
+                document.getElementById('signatureForm').style.display = 'block';
+                document.getElementById('currentSignatureSection').style.display = 'none';
+                // Show generate button
+                document.getElementById('generateButton').style.display = 'inline-block';
+                document.getElementById('regenerateButton').style.display = 'none';
+                document.getElementById('registerCurrentButton').style.display = 'none';
+                document.getElementById('registerButton').style.display = 'none';
+            }
+        }
+
+        // Display current signature
+        function displayCurrentSignature(employeeName, signature) {
+            document.getElementById('currentEmployeeName').textContent = employeeName;
+            document.getElementById('currentSignatureBox').textContent = signature;
+            document.getElementById('currentSignatureSection').style.display = 'block';
+        }
+
+        // Register current signature with admin
+        function registerCurrentSignature() {
+            const signature = document.getElementById('currentSignatureBox').textContent;
+            const employeeName = document.getElementById('currentEmployeeName').textContent;
+            
+            const shareText = `[DIGITAL SIGNATURE EVENT]
+This is my digital signature for sales reporting which you can use to verify my requests
+
+DIGITAL SIGNATURE: ${signature}
+EMPLOYEE NAME: ${employeeName}
+PURPOSE: Sales Reporting
+
+This submission was generated using ${window.location.href}`;
+            
+            const emailSubject = encodeURIComponent('Register my Digital Signature for Sales Reporting');
+            const emailBody = encodeURIComponent(shareText);
+            const mailtoLink = `mailto:admin@truesight.me?subject=${emailSubject}&body=${emailBody}`;
+            const whatsappLink = `https://wa.me/14423405782?text=${encodeURIComponent(shareText)}`;
+
+            navigator.clipboard.writeText(shareText).then(() => {
+                showAlert('Signature copied to clipboard! Please send an email to admin@truesight.me with the subject "Register my Digital Signature for Sales Reporting" and paste the copied text in the email body, or send it via WhatsApp to our program administrator at +1 442 340 5782. You will receive a confirmation once your signature is registered.', 'success');
+            }).catch(error => {
+                showAlert('Error copying to clipboard: ' + error + '. Please manually copy the signature below and email it to admin@truesight.me with the subject "Register my Digital Signature for Sales Reporting", or send it via WhatsApp to our program administrator at +1 442 340 5782. You will receive a confirmation once your signature is registered.', 'error');
+            });
+        }
+
+        // Regenerate signature (clears current and allows new generation)
+        function regenerateSignature() {
+            if (confirm('Are you sure you want to regenerate your digital signature? This will clear your current signature.')) {
+                localStorage.removeItem('userDigitalSignature');
+                localStorage.removeItem('employeeName');
+                document.getElementById('currentSignatureSection').style.display = 'none';
+                document.getElementById('resultSection').style.display = 'none';
+                document.getElementById('signatureForm').style.display = 'block';
+                document.getElementById('signatureForm').reset();
+                
+                // Update button visibility
+                document.getElementById('generateButton').style.display = 'inline-block';
+                document.getElementById('registerButton').style.display = 'none';
+                document.getElementById('regenerateButton').style.display = 'none';
+                document.getElementById('registerCurrentButton').style.display = 'none';
+                
+                showAlert('Digital signature cleared. You can now generate a new signature.', 'success');
+            }
+        }
     </script>
 </body>
 </html>

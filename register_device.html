@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="description" content="Digital Signature Manager for TrueSight DAO Point of Sales">
+    <meta name="description" content="Register your device for sales reporting with secure digital signatures">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digital Signature Manager - TrueSight DAO</title>
+    <title>Register Device - TrueSight DAO</title>
 
     <!-- Open Graph tags for WhatsApp and social media previews -->
-    <meta property="og:title" content="Digital Signature Manager - TrueSight DAO">
-    <meta property="og:description" content="Digital Signature Manager for TrueSight DAO Point of Sales">
+    <meta property="og:title" content="Register Device - TrueSight DAO">
+    <meta property="og:description" content="Register your device for sales reporting with secure digital signatures">
     <meta property="og:image" content="https://github.com/TrueSightDAO/.github/blob/main/assets/20240612_truesight_dao_logo_square.png?raw=true">
     <meta property="og:url" content="https://truesightdao.github.io/point-of-sales-integrations/">
     <meta property="og:type" content="website">
@@ -400,13 +400,13 @@
                 <select class="nav-dropdown" onchange="navigateToPage(this.value)">
                     <option value="">Navigate to...</option>
                     <option value="index.html">🏠 Main Dashboard</option>
-                    <option value="digital_signature_creator.html">🔐 Digital Signature Creator</option>
-                    <option value="upc_barcode_scanner.html">📱 UPC Barcode Scanner</option>
+                    <option value="register_device.html">📱 Register Device</option>
+                    <option value="create_invoice.html">🧾 Invoice Creator</option>
                 </select>
             </div>
             <img src="https://github.com/TrueSightDAO/.github/blob/main/assets/20240612_truesight_dao_logo_square.png?raw=true" alt="TrueSight DAO Logo" height="200px" style="margin-bottom: 15px; border-radius: 8px;">
-            <h1>🔐 Digital Signature Manager</h1>
-            <p>Generate and manage your digital signature for sales reporting</p>
+            <h1>📱 Register Device</h1>
+            <p>Register your device for sales reporting with a secure digital signature</p>
         </div>
 
         <div class="main-content">
@@ -474,6 +474,7 @@
             <button id="registerButton" class="btn" onclick="registerSignature()" style="display: none;">📧 Register with Admin</button>
             <button id="registerCurrentButton" class="btn" onclick="registerCurrentSignature()" style="display: none;">📧 Register with Admin</button>
             <button id="regenerateButton" class="btn btn-secondary" onclick="regenerateSignature()" style="display: none;">🔄 Regenerate Signature</button>
+            <button id="startInvoiceButton" class="btn btn-info" onclick="startCreatingInvoice()" style="display: none;">🧾 Start Creating Invoice</button>
         </div>
     </div>
 
@@ -589,6 +590,23 @@ This submission was generated using ${window.location.href}`;
             }
         }
 
+        // Start creating invoice
+        function startCreatingInvoice() {
+            window.location.href = 'create_invoice.html';
+        }
+
+        // Verify digital signature with server
+        async function verifyDigitalSignature(signature) {
+            try {
+                const response = await fetch(`https://script.google.com/macros/s/AKfycbzH5eV1cPLEViYvBLrduMsv83xxN5PlOsShNZFHKEgMzuwLM5AdzarvG8RXxHJgH9_P/exec?mode=verify_signature&signature=${encodeURIComponent(signature)}`);
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                console.error('Error verifying signature:', error);
+                return { valid: false, error: 'Network error' };
+            }
+        }
+
         // Load employees from API
         async function loadEmployees() {
             try {
@@ -634,6 +652,12 @@ This submission was generated using ${window.location.href}`;
                     localStorage.setItem('userDigitalSignature', result.signature);
                     localStorage.setItem('employeeName', signerName);
                     
+                    console.log('Signature saved to localStorage:', {
+                        key: 'userDigitalSignature',
+                        value: result.signature.substring(0, 20) + '...',
+                        employeeName: signerName
+                    });
+                    
                     // Hide loading and form, show current signature section
                     document.getElementById('loading').style.display = 'none';
                     document.getElementById('signatureForm').style.display = 'none';
@@ -644,6 +668,7 @@ This submission was generated using ${window.location.href}`;
                     document.getElementById('registerButton').style.display = 'none';
                     document.getElementById('registerCurrentButton').style.display = 'block';
                     document.getElementById('regenerateButton').style.display = 'block';
+                    document.getElementById('startInvoiceButton').style.display = 'block';
                     
                     showAlert('Digital signature generated and saved for sales reporting!', 'success');
                 } catch (error) {
@@ -660,28 +685,69 @@ This submission was generated using ${window.location.href}`;
             checkExistingSignature();
         });
 
-        // Check for existing signature in localStorage
-        function checkExistingSignature() {
-            const digitalSignature = localStorage.getItem('userDigitalSignature');
-            const employeeName = localStorage.getItem('employeeName');
+        // Check for existing signature in localStorage and verify with server
+        async function checkExistingSignature() {
+            console.log('checkExistingSignature called');
+            console.log('All localStorage keys:', Object.keys(localStorage));
             
-            if (digitalSignature && employeeName) {
+            const digitalSignature = localStorage.getItem('userDigitalSignature');
+            console.log('Digital signature from localStorage:', digitalSignature ? 'Found' : 'Not found');
+            
+            if (digitalSignature) {
+                // Verify signature with server
+                const verification = await verifyDigitalSignature(digitalSignature);
+                
+                if (verification.valid) {
+                    // Signature is valid, update localStorage with server data
+                    localStorage.setItem('employeeName', verification.employee_name);
+                    localStorage.setItem('employeeId', verification.employee_id);
+                    
+                    displayCurrentSignature(verification.employee_name, digitalSignature);
+                    // Hide the form when signature exists
+                    document.getElementById('signatureForm').style.display = 'none';
+                    // Show regenerate and start invoice buttons (hide register button since already registered)
+                    document.getElementById('regenerateButton').style.display = 'inline-block';
+                    document.getElementById('registerCurrentButton').style.display = 'none'; // Hide since already registered
+                    document.getElementById('startInvoiceButton').style.display = 'inline-block';
+                    document.getElementById('generateButton').style.display = 'none';
+                    document.getElementById('registerButton').style.display = 'none';
+                } else {
+                    // Signature not found on server - keep localStorage but show warning
+                    showAlert('Device signature not registered with server. Please register with admin to enable invoice creation.', 'warning');
+                    showRegistrationForm();
+                }
+            } else {
+                // No signature in localStorage
+                showRegistrationForm();
+            }
+        }
+
+        // Show registration form
+        function showRegistrationForm() {
+            const digitalSignature = localStorage.getItem('userDigitalSignature');
+            
+            if (digitalSignature) {
+                // Signature exists but not registered with server - show current signature and register button
+                const employeeName = localStorage.getItem('employeeName') || 'Unknown Employee';
                 displayCurrentSignature(employeeName, digitalSignature);
-                // Hide the form when signature exists
                 document.getElementById('signatureForm').style.display = 'none';
-                // Show regenerate and register buttons
+                document.getElementById('currentSignatureSection').style.display = 'block';
+                
+                // Show register button since signature exists but not registered
+                document.getElementById('generateButton').style.display = 'none';
                 document.getElementById('regenerateButton').style.display = 'inline-block';
                 document.getElementById('registerCurrentButton').style.display = 'inline-block';
-                document.getElementById('generateButton').style.display = 'none';
+                document.getElementById('startInvoiceButton').style.display = 'none'; // Hide since not registered
                 document.getElementById('registerButton').style.display = 'none';
             } else {
-                // Show the form when no signature exists
+                // No signature - show form to generate one
                 document.getElementById('signatureForm').style.display = 'block';
                 document.getElementById('currentSignatureSection').style.display = 'none';
                 // Show generate button
                 document.getElementById('generateButton').style.display = 'inline-block';
                 document.getElementById('regenerateButton').style.display = 'none';
                 document.getElementById('registerCurrentButton').style.display = 'none';
+                document.getElementById('startInvoiceButton').style.display = 'none';
                 document.getElementById('registerButton').style.display = 'none';
             }
         }
@@ -734,6 +800,7 @@ This submission was generated using ${window.location.href}`;
                 document.getElementById('registerButton').style.display = 'none';
                 document.getElementById('regenerateButton').style.display = 'none';
                 document.getElementById('registerCurrentButton').style.display = 'none';
+                document.getElementById('startInvoiceButton').style.display = 'none';
                 
                 showAlert('Digital signature cleared. You can now generate a new signature.', 'success');
             }

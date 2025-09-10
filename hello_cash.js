@@ -90,6 +90,7 @@ function fetchHelloCashArticles() {
     // Prepare new data array
     var newData = [];
     allArticles.forEach(function(article) {
+      Logger.log(article)
       var id = String(article.article_id || "");
       if (id && !idSet.has(id)) {
         newData.push([
@@ -152,8 +153,8 @@ function fetchHelloCashInvoices() {
       var responseCode = response.getResponseCode();
       var responseText = response.getContentText();
       
-      Logger.log("Invoices Response Code: " + responseCode);
-      Logger.log("Invoices Response Text: " + responseText);
+      // Logger.log("Invoices Response Code: " + responseCode);
+      // Logger.log("Invoices Response Text: " + responseText);
       
       if (responseCode === 200) {
         // Parse the JSON response
@@ -215,6 +216,7 @@ function fetchHelloCashInvoices() {
     // Prepare new data array
     var newData = [];
     allInvoices.forEach(function(invoice) {
+      Logger.log(invoice)
       var id = String(invoice.invoice_id || "");
       if (id && !idSet.has(id)) {
         newData.push([
@@ -365,6 +367,14 @@ function fetchHelloCashEmployees() {
 // To search for articles by name:
 //   - Call: https://script.google.com/macros/s/<your-script-id>/exec?mode=articles&search=<search-string>
 //   - Returns JSON array of objects with article_id and article_name where article_name contains the search string (case-insensitive)
+
+// Helper function to create CORS-enabled response
+function createCORSResponse(data) {
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
 function doGet(e) {
   try {
     var spreadsheetId = "1YFuNAX3ZnUA5RaNezeiERHUxkTg0MnoHWA1zmbyFXvE";
@@ -387,8 +397,7 @@ function doGet(e) {
       
       var lastRow = sheet.getLastRow();
       if (lastRow <= 1) {
-        return ContentService.createTextOutput(JSON.stringify([]))
-          .setMimeType(ContentService.MimeType.JSON);
+        return createCORSResponse([]);
       }
       
       // Get article IDs (column 1) and names (column 2)
@@ -405,8 +414,33 @@ function doGet(e) {
           };
         });
       
-      return ContentService.createTextOutput(JSON.stringify(results))
-        .setMimeType(ContentService.MimeType.JSON);
+      return createCORSResponse(results);
+    } else if (mode === "list_articles") {
+      // Return full list of articles with ID, name, UPC code, and pricing
+      var sheet = spreadsheet.getSheetByName("Articles");
+      if (!sheet) {
+        throw new Error("Sheet 'Articles' not found in the spreadsheet.");
+      }
+      
+      var lastRow = sheet.getLastRow();
+      if (lastRow <= 1) {
+        return createCORSResponse([]);
+      }
+      
+      // Get article IDs (column A), names (column B), UPC codes (column K), and pricing columns
+      // Gross Selling Price is in column G (index 6) and Net Selling Price is in column F (index 5)
+      var data = sheet.getRange(2, 1, lastRow - 1, 11).getValues(); // Get columns A through K
+      var results = data.map(function(row) {
+        return {
+          article_id: String(row[0]),
+          article_name: String(row[1]),
+          upc_code: String(row[10]), // Column K (index 10)
+          gross_selling_price: parseFloat(row[6]) || 0, // Column G (index 6)
+          net_selling_price: parseFloat(row[5]) || 0 // Column F (index 5)
+        };
+      });
+      
+      return createCORSResponse(results);
     } else if (mode === "employees") {
       // Return full list of employees
       var sheet = spreadsheet.getSheetByName("Employees");
@@ -416,8 +450,7 @@ function doGet(e) {
       
       var lastRow = sheet.getLastRow();
       if (lastRow <= 1) {
-        return ContentService.createTextOutput(JSON.stringify([]))
-          .setMimeType(ContentService.MimeType.JSON);
+        return createCORSResponse([]);
       }
       
       // Get employee IDs (column 1), names (column 2), and updated_at (column 3)
@@ -430,14 +463,80 @@ function doGet(e) {
         };
       });
       
-      return ContentService.createTextOutput(JSON.stringify(results))
-        .setMimeType(ContentService.MimeType.JSON);
+      return createCORSResponse(results);
+    } else if (mode === "verify_signature") {
+      // Verify digital signature against Employee Digital Signatures sheet
+      var signature = e.parameter.signature;
+      if (!signature) {
+        return createCORSResponse({ 
+          valid: false, 
+          error: "No signature provided" 
+        });
+      }
+      
+      var signatureSheet = spreadsheet.getSheetByName("Employee Digital Signatures");
+      if (!signatureSheet) {
+        return createCORSResponse({ 
+          valid: false, 
+          error: "Employee Digital Signatures sheet not found" 
+        });
+      }
+      
+      var lastRow = signatureSheet.getLastRow();
+      if (lastRow <= 1) {
+        return createCORSResponse({ 
+          valid: false, 
+          error: "No signatures found in sheet" 
+        });
+      }
+      
+      // Get all signatures (column B) and employee IDs (column A)
+      var signatureData = signatureSheet.getRange(2, 1, lastRow - 1, 2).getValues();
+      
+      // Look for matching signature
+      for (var i = 0; i < signatureData.length; i++) {
+        var row = signatureData[i];
+        var employeeId = String(row[0]);
+        var storedSignature = String(row[1]);
+        
+        if (storedSignature === signature) {
+          // Found matching signature, get employee name
+          var employeeSheet = spreadsheet.getSheetByName("Employees");
+          if (employeeSheet) {
+            var employeeData = employeeSheet.getRange(2, 1, employeeSheet.getLastRow() - 1, 2).getValues();
+            for (var j = 0; j < employeeData.length; j++) {
+              var empRow = employeeData[j];
+              if (String(empRow[0]) === employeeId) {
+                return createCORSResponse({
+                  valid: true,
+                  employee_id: employeeId,
+                  employee_name: String(empRow[1]),
+                  signature: signature
+                });
+              }
+            }
+          }
+          
+          // If we found signature but couldn't get employee name
+          return createCORSResponse({
+            valid: true,
+            employee_id: employeeId,
+            employee_name: "Unknown",
+            signature: signature
+          });
+        }
+      }
+      
+      // Signature not found
+      return createCORSResponse({ 
+        valid: false, 
+        error: "Signature not found in registered devices" 
+      });
     } else {
-      throw new Error("Invalid mode parameter. Use 'employees' or 'articles'.");
+      throw new Error("Invalid mode parameter. Use 'employees', 'articles', 'list_articles', or 'verify_signature'.");
     }
   } catch (error) {
     Logger.log("doGet Error: " + error.message);
-    return ContentService.createTextOutput(JSON.stringify({ error: error.message }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return createCORSResponse({ error: error.message });
   }
 }

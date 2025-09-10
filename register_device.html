@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="description" content="Register your device for sales reporting with secure digital signatures">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Device - TrueSight DAO</title>
+
+    <!-- Open Graph tags for WhatsApp and social media previews -->
+    <meta property="og:title" content="Register Device - TrueSight DAO">
+    <meta property="og:description" content="Register your device for sales reporting with secure digital signatures">
+    <meta property="og:image" content="https://github.com/TrueSightDAO/.github/blob/main/assets/20240612_truesight_dao_logo_square.png?raw=true">
+    <meta property="og:url" content="https://truesightdao.github.io/point-of-sales-integrations/">
+    <meta property="og:type" content="website">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="https://github.com/TrueSightDAO/.github/blob/main/assets/20240612_truesight_dao_logo_square.png?raw=true">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: white;
+            color: #333;
+            padding: 30px;
+            text-align: center;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .header h1 {
+            font-size: 1.6rem;
+            margin: 0 0 8px 0;
+            font-weight: 600;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            margin: 0;
+            opacity: 0.9;
+        }
+
+        .navigation-bar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            padding: 15px;
+        }
+
+
+        .nav-dropdown {
+            background: #f8f9fa;
+            color: #333;
+            border: 1px solid #dee2e6;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            flex: 1;
+            max-width: 200px;
+        }
+
+        .nav-dropdown option {
+            background: white;
+            color: #333;
+        }
+
+        .main-content {
+            background: white;
+            margin: 20px;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #2c3e50;
+            font-weight: 500;
+            margin-bottom: 6px;
+            font-size: 0.95rem;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            width: 100%;
+        }
+
+        .btn:active {
+            background: #2980b9;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:active {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:active {
+            background: #218838;
+        }
+
+        .result-section {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .result-section h3 {
+            color: #34495e;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .signature-display {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .copy-btn {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-right: 10px;
+        }
+
+        .copy-btn:hover {
+            background: #138496;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-success.show {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-error.show {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .alert-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 10px;
+            color: inherit;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+
+        .alert-close:hover {
+            opacity: 1;
+        }
+
+        .instructions {
+            background: #e3f2fd;
+            border-left: 4px solid #3498db;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .instructions h4 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .instructions ul {
+            color: #34495e;
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 5px;
+        }
+
+        .current-signature-section {
+            background: #e8f5e8;
+            border: 2px solid #27ae60;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .current-signature-section h3 {
+            color: #27ae60;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .signature-display {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #bdc3c7;
+        }
+
+        .signature-display p {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .signature-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+            margin: 10px 0;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        .button-area {
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            padding: 20px;
+            margin-top: 30px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            border-radius: 0 0 12px 12px;
+        }
+
+        .button-area .btn {
+            margin: 0;
+            min-width: 200px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .navigation-bar {
+                gap: 6px;
+                justify-content: center;
+                padding: 10px;
+            }
+            
+            .nav-dropdown {
+                padding: 6px 10px;
+                font-size: 0.8rem;
+                max-width: 150px;
+            }
+
+            .button-area {
+                padding: 15px;
+                flex-direction: column;
+                margin: 20px 10px 0 10px;
+            }
+
+            .button-area .btn {
+                min-width: auto;
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="navigation-bar">
+                <select class="nav-dropdown" onchange="navigateToPage(this.value)">
+                    <option value="">Navigate to...</option>
+                    <option value="index.html">🏠 Main Dashboard</option>
+                    <option value="register_device.html">📱 Register Device</option>
+                    <option value="create_invoice.html">🧾 Invoice Creator</option>
+                </select>
+            </div>
+            <img src="https://github.com/TrueSightDAO/.github/blob/main/assets/20240612_truesight_dao_logo_square.png?raw=true" alt="TrueSight DAO Logo" height="200px" style="margin-bottom: 15px; border-radius: 8px;">
+            <h1>📱 Register Device</h1>
+            <p>Register your device for sales reporting with a secure digital signature</p>
+        </div>
+
+        <div class="main-content">
+            <div class="instructions">
+                <h4>How to use:</h4>
+                <ul>
+                    <li>Select your name from the employee dropdown</li>
+                    <li>Click "Generate Signature" to create your digital signature</li>
+                    <li>Your signature will be saved locally for sales reporting</li>
+                    <li>Use the scanner to report sales with your signature</li>
+                </ul>
+            </div>
+
+            <!-- Current Signature Display -->
+            <div class="current-signature-section" id="currentSignatureSection" style="display: none;">
+                <h3>Current Digital Signature</h3>
+                <div class="signature-display">
+                    <p><strong>Employee:</strong> <span id="currentEmployeeName"></span></p>
+                    <p><strong>Signature:</strong></p>
+                    <div class="signature-box" id="currentSignatureBox"></div>
+                </div>
+            </div>
+
+            <div class="alert alert-success" id="successAlert">
+                <span id="successMessage"></span>
+                <button class="alert-close" onclick="hideAlert('success')">×</button>
+            </div>
+            <div class="alert alert-error" id="errorAlert">
+                <span id="errorMessage"></span>
+                <button class="alert-close" onclick="hideAlert('error')">×</button>
+            </div>
+
+            <form id="signatureForm">
+                <div class="form-group">
+                    <label for="signerName">Select Employee:</label>
+                    <select id="signerName" name="signerName" required>
+                        <option value="">Loading employees...</option>
+                    </select>
+                </div>
+
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Generating your digital signature...</p>
+            </div>
+
+            <div class="result-section" id="resultSection">
+                <h3>✅ Your Digital Signature</h3>
+                <div class="signature-display" id="signatureDisplay"></div>
+                
+                <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <h4 style="color: #34495e; margin-bottom: 10px;">📝 Signature Details:</h4>
+                    <p><strong>Signer:</strong> <span id="signerDisplay"></span></p>
+                    <p><strong>Purpose:</strong> <span id="purposeDisplay"></span></p>
+                    <p><strong>Timestamp:</strong> <span id="timestampDisplay"></span></p>
+                    <p><strong>Content Hash:</strong> <span id="hashDisplay"></span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Unified Button Area -->
+        <div class="button-area">
+            <button id="generateButton" class="btn" onclick="handleGenerateSignature()" style="display: none;">Generate Signature</button>
+            <button id="registerButton" class="btn" onclick="registerSignature()" style="display: none;">📧 Register with Admin</button>
+            <button id="registerCurrentButton" class="btn" onclick="registerCurrentSignature()" style="display: none;">📧 Register with Admin</button>
+            <button id="regenerateButton" class="btn btn-secondary" onclick="regenerateSignature()" style="display: none;">🔄 Regenerate Signature</button>
+            <button id="startInvoiceButton" class="btn btn-info" onclick="startCreatingInvoice()" style="display: none;">🧾 Start Creating Invoice</button>
+        </div>
+    </div>
+
+    <script>
+        // Generate a simple hash function for content
+        function simpleHash(str) {
+            let hash = 0;
+            if (str.length === 0) return hash.toString();
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // Convert to 32-bit integer
+            }
+            return Math.abs(hash).toString(16);
+        }
+
+        // Generate a digital signature
+        function generateSignature(name, content, purpose) {
+            const timestamp = new Date().toISOString();
+            const contentHash = simpleHash(content);
+            const signerHash = simpleHash(name.toLowerCase().trim());
+            
+            // Create a signature payload
+            const signatureData = {
+                signer: name,
+                content: content,
+                purpose: purpose || 'Digital Signature',
+                timestamp: timestamp,
+                contentHash: contentHash,
+                signerHash: signerHash
+            };
+            
+            // Generate a unique signature based on all the data
+            const signatureString = JSON.stringify(signatureData);
+            const signatureHash = simpleHash(signatureString);
+            
+            // Create a more complex signature
+            const signature = btoa(JSON.stringify({
+                ...signatureData,
+                signature: signatureHash,
+                version: '1.0',
+                algorithm: 'POS-SHA256'
+            }));
+            
+            return {
+                signature: signature,
+                data: signatureData
+            };
+        }
+
+        // Show alert
+        function showAlert(message, type = 'success') {
+            const alertId = type === 'success' ? 'successAlert' : 'errorAlert';
+            const messageId = type === 'success' ? 'successMessage' : 'errorMessage';
+            const alert = document.getElementById(alertId);
+            const messageElement = document.getElementById(messageId);
+            
+            // Only show alert if there's a message
+            if (message && message.trim()) {
+                messageElement.textContent = message;
+                alert.classList.add('show');
+            } else {
+                alert.classList.remove('show');
+            }
+            
+            // Hide other alerts
+            document.getElementById('successAlert').classList.toggle('show', type === 'success' && message && message.trim());
+            document.getElementById('errorAlert').classList.toggle('show', type === 'error' && message && message.trim());
+        }
+
+        // Hide alert
+        function hideAlert(type) {
+            const alertId = type === 'success' ? 'successAlert' : 'errorAlert';
+            document.getElementById(alertId).classList.remove('show');
+        }
+
+        // Register signature with admin (following dapp pattern)
+        function registerSignature() {
+            const signature = document.getElementById('signatureDisplay').textContent;
+            const signer = document.getElementById('signerDisplay').textContent;
+            
+            const shareText = `[DIGITAL SIGNATURE EVENT]
+This is my digital signature for sales reporting which you can use to verify my requests
+
+DIGITAL SIGNATURE: ${signature}
+EMPLOYEE NAME: ${signer}
+PURPOSE: Sales Reporting
+
+This submission was generated using ${window.location.href}`;
+            
+            const emailSubject = encodeURIComponent('Register my Digital Signature for Sales Reporting');
+            const emailBody = encodeURIComponent(shareText);
+            const mailtoLink = `mailto:admin@truesight.me?subject=${emailSubject}&body=${emailBody}`;
+            const whatsappLink = `https://wa.me/14423405782?text=${encodeURIComponent(shareText)}`;
+
+            navigator.clipboard.writeText(shareText).then(() => {
+                showAlert('Signature copied to clipboard! Please send an email to admin@truesight.me with the subject "Register my Digital Signature for Sales Reporting" and paste the copied text in the email body, or send it via WhatsApp to our program administrator at +1 442 340 5782. You will receive a confirmation once your signature is registered.', 'success');
+            }).catch(error => {
+                showAlert('Error copying to clipboard: ' + error + '. Please manually copy the signature below and email it to admin@truesight.me with the subject "Register my Digital Signature for Sales Reporting", or send it via WhatsApp to our program administrator at +1 442 340 5782. You will receive a confirmation once your signature is registered.', 'error');
+            });
+        }
+
+
+        // Go back to main page
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+
+        // Navigate to selected page
+        function navigateToPage(url) {
+            if (url) {
+                window.location.href = url;
+            }
+        }
+
+        // Start creating invoice
+        function startCreatingInvoice() {
+            window.location.href = 'create_invoice.html';
+        }
+
+        // Verify digital signature with server
+        async function verifyDigitalSignature(signature) {
+            try {
+                const response = await fetch(`https://script.google.com/macros/s/AKfycbzH5eV1cPLEViYvBLrduMsv83xxN5PlOsShNZFHKEgMzuwLM5AdzarvG8RXxHJgH9_P/exec?mode=verify_signature&signature=${encodeURIComponent(signature)}`);
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                console.error('Error verifying signature:', error);
+                return { valid: false, error: 'Network error' };
+            }
+        }
+
+        // Load employees from API
+        async function loadEmployees() {
+            try {
+                const response = await fetch('https://script.google.com/macros/s/AKfycbzH5eV1cPLEViYvBLrduMsv83xxN5PlOsShNZFHKEgMzuwLM5AdzarvG8RXxHJgH9_P/exec?mode=employees');
+                const employees = await response.json();
+                
+                const select = document.getElementById('signerName');
+                select.innerHTML = '<option value="">Select an employee...</option>';
+                
+                employees.forEach(employee => {
+                    const option = document.createElement('option');
+                    option.value = employee.employee_name;
+                    option.textContent = employee.employee_name;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading employees:', error);
+                const select = document.getElementById('signerName');
+                select.innerHTML = '<option value="">Error loading employees</option>';
+            }
+        }
+
+        // Generate signature function (called by button)
+        function handleGenerateSignature() {
+            const signerName = document.getElementById('signerName').value.trim();
+            
+            if (!signerName) {
+                showAlert('Please select your name from the dropdown.', 'error');
+                return;
+            }
+            
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('resultSection').style.display = 'none';
+            
+            // Simulate processing time
+            setTimeout(() => {
+                try {
+                    // Generate signature for sales reporting
+                    const result = generateSignature(signerName, 'SALES_REPORTING_SIGNATURE', 'Sales Reporting');
+                    
+                    // Save to localStorage for sales reporting
+                    localStorage.setItem('userDigitalSignature', result.signature);
+                    localStorage.setItem('employeeName', signerName);
+                    
+                    console.log('Signature saved to localStorage:', {
+                        key: 'userDigitalSignature',
+                        value: result.signature.substring(0, 20) + '...',
+                        employeeName: signerName
+                    });
+                    
+                    // Hide loading and form, show current signature section
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('signatureForm').style.display = 'none';
+                    displayCurrentSignature(signerName, result.signature);
+                    
+                    // Update button visibility
+                    document.getElementById('generateButton').style.display = 'none';
+                    document.getElementById('registerButton').style.display = 'none';
+                    document.getElementById('registerCurrentButton').style.display = 'block';
+                    document.getElementById('regenerateButton').style.display = 'block';
+                    document.getElementById('startInvoiceButton').style.display = 'block';
+                    
+                    showAlert('Digital signature generated and saved for sales reporting!', 'success');
+                } catch (error) {
+                    document.getElementById('loading').style.display = 'none';
+                    showAlert('Error generating signature: ' + error.message, 'error');
+                }
+            }, 1500);
+        }
+
+
+        // Load employees when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadEmployees();
+            checkExistingSignature();
+        });
+
+        // Check for existing signature in localStorage and verify with server
+        async function checkExistingSignature() {
+            console.log('checkExistingSignature called');
+            console.log('All localStorage keys:', Object.keys(localStorage));
+            
+            const digitalSignature = localStorage.getItem('userDigitalSignature');
+            console.log('Digital signature from localStorage:', digitalSignature ? 'Found' : 'Not found');
+            
+            if (digitalSignature) {
+                // Verify signature with server
+                const verification = await verifyDigitalSignature(digitalSignature);
+                
+                if (verification.valid) {
+                    // Signature is valid, update localStorage with server data
+                    localStorage.setItem('employeeName', verification.employee_name);
+                    localStorage.setItem('employeeId', verification.employee_id);
+                    
+                    displayCurrentSignature(verification.employee_name, digitalSignature);
+                    // Hide the form when signature exists
+                    document.getElementById('signatureForm').style.display = 'none';
+                    // Show regenerate and start invoice buttons (hide register button since already registered)
+                    document.getElementById('regenerateButton').style.display = 'inline-block';
+                    document.getElementById('registerCurrentButton').style.display = 'none'; // Hide since already registered
+                    document.getElementById('startInvoiceButton').style.display = 'inline-block';
+                    document.getElementById('generateButton').style.display = 'none';
+                    document.getElementById('registerButton').style.display = 'none';
+                } else {
+                    // Signature not found on server - keep localStorage but show warning
+                    showAlert('Device signature not registered with server. Please register with admin to enable invoice creation.', 'warning');
+                    showRegistrationForm();
+                }
+            } else {
+                // No signature in localStorage
+                showRegistrationForm();
+            }
+        }
+
+        // Show registration form
+        function showRegistrationForm() {
+            const digitalSignature = localStorage.getItem('userDigitalSignature');
+            
+            if (digitalSignature) {
+                // Signature exists but not registered with server - show current signature and register button
+                const employeeName = localStorage.getItem('employeeName') || 'Unknown Employee';
+                displayCurrentSignature(employeeName, digitalSignature);
+                document.getElementById('signatureForm').style.display = 'none';
+                document.getElementById('currentSignatureSection').style.display = 'block';
+                
+                // Show register button since signature exists but not registered
+                document.getElementById('generateButton').style.display = 'none';
+                document.getElementById('regenerateButton').style.display = 'inline-block';
+                document.getElementById('registerCurrentButton').style.display = 'inline-block';
+                document.getElementById('startInvoiceButton').style.display = 'none'; // Hide since not registered
+                document.getElementById('registerButton').style.display = 'none';
+            } else {
+                // No signature - show form to generate one
+                document.getElementById('signatureForm').style.display = 'block';
+                document.getElementById('currentSignatureSection').style.display = 'none';
+                // Show generate button
+                document.getElementById('generateButton').style.display = 'inline-block';
+                document.getElementById('regenerateButton').style.display = 'none';
+                document.getElementById('registerCurrentButton').style.display = 'none';
+                document.getElementById('startInvoiceButton').style.display = 'none';
+                document.getElementById('registerButton').style.display = 'none';
+            }
+        }
+
+        // Display current signature
+        function displayCurrentSignature(employeeName, signature) {
+            document.getElementById('currentEmployeeName').textContent = employeeName;
+            document.getElementById('currentSignatureBox').textContent = signature;
+            document.getElementById('currentSignatureSection').style.display = 'block';
+        }
+
+        // Register current signature with admin
+        function registerCurrentSignature() {
+            const signature = document.getElementById('currentSignatureBox').textContent;
+            const employeeName = document.getElementById('currentEmployeeName').textContent;
+            
+            const shareText = `[DIGITAL SIGNATURE EVENT]
+This is my digital signature for sales reporting which you can use to verify my requests
+
+DIGITAL SIGNATURE: ${signature}
+EMPLOYEE NAME: ${employeeName}
+PURPOSE: Sales Reporting
+
+This submission was generated using ${window.location.href}`;
+            
+            const emailSubject = encodeURIComponent('Register my Digital Signature for Sales Reporting');
+            const emailBody = encodeURIComponent(shareText);
+            const mailtoLink = `mailto:admin@truesight.me?subject=${emailSubject}&body=${emailBody}`;
+            const whatsappLink = `https://wa.me/14423405782?text=${encodeURIComponent(shareText)}`;
+
+            navigator.clipboard.writeText(shareText).then(() => {
+                showAlert('Signature copied to clipboard! Please send an email to admin@truesight.me with the subject "Register my Digital Signature for Sales Reporting" and paste the copied text in the email body, or send it via WhatsApp to our program administrator at +1 442 340 5782. You will receive a confirmation once your signature is registered.', 'success');
+            }).catch(error => {
+                showAlert('Error copying to clipboard: ' + error + '. Please manually copy the signature below and email it to admin@truesight.me with the subject "Register my Digital Signature for Sales Reporting", or send it via WhatsApp to our program administrator at +1 442 340 5782. You will receive a confirmation once your signature is registered.', 'error');
+            });
+        }
+
+        // Regenerate signature (clears current and allows new generation)
+        function regenerateSignature() {
+            if (confirm('Are you sure you want to regenerate your digital signature? This will clear your current signature.')) {
+                localStorage.removeItem('userDigitalSignature');
+                localStorage.removeItem('employeeName');
+                document.getElementById('currentSignatureSection').style.display = 'none';
+                document.getElementById('resultSection').style.display = 'none';
+                document.getElementById('signatureForm').style.display = 'block';
+                document.getElementById('signatureForm').reset();
+                
+                // Update button visibility
+                document.getElementById('generateButton').style.display = 'inline-block';
+                document.getElementById('registerButton').style.display = 'none';
+                document.getElementById('regenerateButton').style.display = 'none';
+                document.getElementById('registerCurrentButton').style.display = 'none';
+                document.getElementById('startInvoiceButton').style.display = 'none';
+                
+                showAlert('Digital signature cleared. You can now generate a new signature.', 'success');
+            }
+        }
+    </script>
+</body>
+</html>

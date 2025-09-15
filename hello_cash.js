@@ -1,6 +1,3 @@
-// Reference
-// https://hellocash.docs.apiary.io/#
-
 function fetchHelloCashArticles() {
   // Define API endpoint and authentication token
   var token = getApiKey();
@@ -434,16 +431,10 @@ function doGet(e) {
       // Gross Selling Price is in column G (index 6) and Net Selling Price is in column F (index 5)
       var data = sheet.getRange(2, 1, lastRow - 1, 11).getValues(); // Get columns A through K
       var results = data.map(function(row) {
-        // Strip leading apostrophe from UPC code if present (used to preserve leading zeros)
-        var upcCode = String(row[10]);
-        if (upcCode.startsWith("'")) {
-          upcCode = upcCode.substring(1);
-        }
-        
         return {
           article_id: String(row[0]),
           article_name: String(row[1]),
-          upc_code: upcCode, // Column K (index 10) with apostrophe stripped
+          upc_code: String(row[10]), // Column K (index 10)
           gross_selling_price: parseFloat(row[6]) || 0, // Column G (index 6)
           net_selling_price: parseFloat(row[5]) || 0 // Column F (index 5)
         };

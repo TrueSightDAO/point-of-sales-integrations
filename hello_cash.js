@@ -1,6 +1,3 @@
-// Reference
-// https://hellocash.docs.apiary.io/#
-
 function fetchHelloCashArticles() {
   // Define API endpoint and authentication token
   var token = getApiKey();

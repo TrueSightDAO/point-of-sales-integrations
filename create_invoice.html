@@ -838,19 +838,6 @@
             background: none;
         }
 
-        .invoice-actions {
-            margin-top: 20px;
-            text-align: center;
-            padding-top: 20px;
-            border-top: 1px solid #e0e0e0;
-        }
-
-        .invoice-actions .btn {
-            min-width: 200px;
-            font-size: 1.1rem;
-            padding: 12px 24px;
-        }
-
         .invoice-totals-section {
             background: white;
             border-radius: 12px;
@@ -1295,11 +1282,6 @@
                     <div class="total-line total-final">
                         <span>Total:</span>
                         <span id="totalAmount">$0.00</span>
-                    </div>
-                    <div class="invoice-actions">
-                        <button id="saveInvoiceBtn" class="btn btn-success" onclick="saveInvoice()" disabled>
-                            💾 Save Invoice
-                        </button>
                     </div>
                 </div>
             </div>
@@ -2072,20 +2054,23 @@
                 try {
                     showAlert('Linking UPC to existing product...', 'info');
                     
-                    // Generate UPC linking data for signed contribution
-                    const upcLinkingData = {
-                        action: 'link_upc',
-                        product_id: selectedProduct.article_id,
-                        product_name: selectedProduct.article_name,
-                        upc_code: upcCode,
-                        employee: localStorage.getItem('employeeName'),
-                        timestamp: new Date().toISOString()
-                    };
+                    var api_url ='https://edgar.truesight.me/dao/link_upc'
+                    // var api_url ='http://localhost:3000/dao/link_upc';
+
+                    const response = await fetch(api_url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            product_id: selectedProduct.article_id,
+                            upc_code: upcCode
+                        })
+                    });
                     
-                    // Submit as signed contribution
-                    const result = await submitUPCContribution(upcLinkingData);
+                    const result = await response.json();
                     
-                    if (result.success) {
+                    if (result.status === 'success') {
                         showAlert(`Successfully linked UPC ${upcCode} to product "${selectedProduct.article_name}"`, 'success');
                         productToAdd = selectedProduct;
                     } else {
@@ -2191,246 +2176,6 @@
             } catch (error) {
                 console.error('Error verifying signature:', error);
                 return { valid: false, error: 'Network error' };
-            }
-        }
-
-        // Generate a simple hash function for content
-        function simpleHash(str) {
-            let hash = 0;
-            if (str.length === 0) return hash.toString();
-            for (let i = 0; i < str.length; i++) {
-                const char = str.charCodeAt(i);
-                hash = ((hash << 5) - hash) + char;
-                hash = hash & hash; // Convert to 32bit integer
-            }
-            return Math.abs(hash).toString();
-        }
-
-        // Generate cryptographic signature like DApp (matching DApp approach)
-        async function generateCryptographicSignature(content) {
-            try {
-                // Get the private key from localStorage (stored as base64)
-                const privateKeyBase64 = localStorage.getItem('privateKey');
-                if (!privateKeyBase64) {
-                    throw new Error('Private key not found in localStorage');
-                }
-
-                // Convert base64 to ArrayBuffer
-                const privateKeyBuffer = base64ToArrayBuffer(privateKeyBase64);
-
-                // Import the private key
-                const privateKeyObj = await window.crypto.subtle.importKey(
-                    "pkcs8",
-                    privateKeyBuffer,
-                    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-                    false,
-                    ["sign"]
-                );
-
-                // Sign the content
-                const encoder = new TextEncoder();
-                const signature = await window.crypto.subtle.sign(
-                    "RSASSA-PKCS1-v1_5",
-                    privateKeyObj,
-                    encoder.encode(content)
-                );
-
-                // Convert signature to base64 (this becomes the Request Transaction ID)
-                const requestHash = arrayBufferToBase64(signature);
-                return requestHash;
-
-            } catch (error) {
-                console.error('Error generating cryptographic signature:', error);
-                // Fallback to simple hash if cryptographic signing fails
-                const digitalSignature = localStorage.getItem('userDigitalSignature');
-                const signatureData = content + digitalSignature + 'POS_SIGNATURE_SALT';
-                return simpleHash(signatureData);
-            }
-        }
-
-        // Helper function to convert base64 to ArrayBuffer
-        function base64ToArrayBuffer(base64) {
-            const binary = atob(base64);
-            const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) {
-                bytes[i] = binary.charCodeAt(i);
-            }
-            return bytes.buffer;
-        }
-
-        // Helper function to convert ArrayBuffer to base64
-        function arrayBufferToBase64(buffer) {
-            const bytes = new Uint8Array(buffer);
-            let binary = '';
-            for (let i = 0; i < bytes.byteLength; i++) {
-                binary += String.fromCharCode(bytes[i]);
-            }
-            return btoa(binary);
-        }
-
-        // Generate signed payload for DAO contribution
-        async function generateSignedPayload(invoiceData) {
-            const digitalSignature = localStorage.getItem('userDigitalSignature');
-            const employeeName = localStorage.getItem('employeeName');
-            const publicKey = localStorage.getItem('publicKey');
-            
-            if (!digitalSignature || !employeeName || !publicKey) {
-                throw new Error('Digital signature, employee name, or public key not found');
-            }
-
-            // Create the content to sign (ending with -------- like DApp)
-            const content = `[INVOICE CONTRIBUTION]
-domain: ${window.location.origin}
-invoice number: ${invoiceData.invoiceNumber}
-date: ${invoiceData.date}
-employee: ${employeeName}
-total items: ${invoiceData.items.length}
-total amount: $${invoiceData.totalAmount.toFixed(2)}
-subtotal: $${invoiceData.subtotal.toFixed(2)}
-tax: $${invoiceData.tax.toFixed(2)}
-
-items:
-${invoiceData.items.map(item => 
-    `- ${item.article_name} (UPC: ${item.upc_code}) - Qty: ${item.quantity} - $${item.totalGross.toFixed(2)}`
-).join('\n')}
-This invoice represents a sales transaction contribution to the TrueSight DAO ecosystem.--------`;
-
-            // Generate Request Transaction ID using cryptographic signing (matching DApp approach)
-            const requestTransactionId = await generateCryptographicSignature(content);
-
-            // Create the full payload in DApp format (matching verify_request.html exactly - 3 parts only)
-            const payload = `${content}\n\nMy Digital Signature: ${publicKey}\n\nRequest Transaction ID: ${requestTransactionId}`;
-            
-            return {
-                payload: payload,
-                transactionId: requestTransactionId,
-                content: content
-            };
-        }
-
-        // Submit invoice as express contribution
-        async function submitInvoiceContribution(invoiceData) {
-            try {
-                // Generate signed payload
-                const signedPayload = await generateSignedPayload(invoiceData);
-                
-                console.log('Submitting invoice contribution:', {
-                    transactionId: signedPayload.transactionId,
-                    itemCount: invoiceData.items.length,
-                    totalAmount: invoiceData.totalAmount
-                });
-
-                // Submit to express_submit_contribution endpoint
-                // Production
-                // const api_url = 'https://edgar.truesight.me/dao/express_submit_contribution';
-                
-                // Sandbox
-                const api_url = 'http://localhost:3000/dao/express_submit_contribution';
-                
-                const response = await fetch(api_url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: new URLSearchParams({
-                        text: signedPayload.payload,
-                        contribution_type: 'invoice_contribution'
-                    })
-                });
-
-                const result = await response.json();
-                
-                if (result.status === 'success') {
-                    console.log('Invoice contribution submitted successfully:', result);
-                    return { success: true, result: result };
-                } else {
-                    console.error('Failed to submit invoice contribution:', result);
-                    return { success: false, error: result.error };
-                }
-            } catch (error) {
-                console.error('Error submitting invoice contribution:', error);
-                return { success: false, error: error.message };
-            }
-        }
-
-        // Generate signed payload for UPC linking contribution
-        async function generateUPCLinkingPayload(upcData) {
-            const digitalSignature = localStorage.getItem('userDigitalSignature');
-            const employeeName = localStorage.getItem('employeeName');
-            const publicKey = localStorage.getItem('publicKey');
-            
-            if (!digitalSignature || !employeeName || !publicKey) {
-                throw new Error('Digital signature, employee name, or public key not found');
-            }
-
-            // Create the content to sign (ending with -------- like DApp)
-            const content = `[UPC LINKING CONTRIBUTION]
-domain: ${window.location.origin}
-action: ${upcData.action}
-product id: ${upcData.product_id}
-product name: ${upcData.product_name}
-upc code: ${upcData.upc_code}
-employee: ${employeeName}
-timestamp: ${upcData.timestamp}
-This contribution links a UPC barcode to an existing product in the inventory system for the TrueSight DAO ecosystem.--------`;
-
-            // Generate Request Transaction ID using cryptographic signing (matching DApp approach)
-            const requestTransactionId = await generateCryptographicSignature(content);
-
-            // Create the full payload in DApp format (matching verify_request.html exactly - 3 parts only)
-            const payload = `${content}\n\nMy Digital Signature: ${publicKey}\n\nRequest Transaction ID: ${requestTransactionId}`;
-
-            return {
-                payload: payload,
-                transactionId: requestTransactionId,
-                content: content
-            };
-        }
-
-        // Submit UPC linking as express contribution
-        async function submitUPCContribution(upcData) {
-            try {
-                // Generate signed payload
-                const signedPayload = await generateUPCLinkingPayload(upcData);
-                
-                console.log('Submitting UPC linking contribution:', {
-                    transactionId: signedPayload.transactionId,
-                    productId: upcData.product_id,
-                    upcCode: upcData.upc_code
-                });
-
-                // Submit to express_submit_contribution endpoint
-                // Production
-                // const api_url = 'https://edgar.truesight.me/dao/express_submit_contribution';
-                
-                // Sandbox
-                const api_url = 'http://localhost:3000/dao/express_submit_contribution';
-
-                console.log(signedPayload.payload);
-
-                const response = await fetch(api_url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: new URLSearchParams({
-                        text: signedPayload.payload,
-                        contribution_type: 'upc_linking_contribution'
-                    })
-                });
-
-                const result = await response.json();
-                
-                if (result.status === 'success') {
-                    console.log('UPC linking contribution submitted successfully:', result);
-                    return { success: true, result: result };
-                } else {
-                    console.error('Failed to submit UPC linking contribution:', result);
-                    return { success: false, error: result.error };
-                }
-            } catch (error) {
-                console.error('Error submitting UPC linking contribution:', error);
-                return { success: false, error: error.message };
             }
         }
 
@@ -2562,70 +2307,6 @@ This contribution links a UPC barcode to an existing product in the inventory sy
             document.getElementById('subtotal').textContent = `$${subtotal.toFixed(2)}`;
             document.getElementById('taxAmount').textContent = `$${totalTax.toFixed(2)}`;
             document.getElementById('totalAmount').textContent = `$${total.toFixed(2)}`;
-            
-            // Enable/disable save button based on whether there are items
-            const saveBtn = document.getElementById('saveInvoiceBtn');
-            if (invoiceItems.length > 0) {
-                saveBtn.disabled = false;
-                saveBtn.style.opacity = '1';
-                saveBtn.style.cursor = 'pointer';
-            } else {
-                saveBtn.disabled = true;
-                saveBtn.style.opacity = '0.6';
-                saveBtn.style.cursor = 'not-allowed';
-            }
-        }
-
-        // Save invoice as contribution
-        async function saveInvoice() {
-            if (invoiceItems.length === 0) {
-                showAlert('Cannot save empty invoice', 'error');
-                return;
-            }
-
-            const saveBtn = document.getElementById('saveInvoiceBtn');
-            const originalText = saveBtn.textContent;
-            
-            try {
-                // Show loading state
-                saveBtn.disabled = true;
-                saveBtn.textContent = '💾 Saving...';
-                
-                // Prepare invoice data
-                const invoiceData = {
-                    invoiceNumber: document.getElementById('invoiceNumber').textContent,
-                    date: document.getElementById('invoiceDate').textContent,
-                    employee: document.getElementById('employeeName').textContent,
-                    items: invoiceItems,
-                    subtotal: parseFloat(document.getElementById('subtotal').textContent.replace('$', '')),
-                    tax: parseFloat(document.getElementById('taxAmount').textContent.replace('$', '')),
-                    totalAmount: parseFloat(document.getElementById('totalAmount').textContent.replace('$', ''))
-                };
-                
-                // Submit as contribution
-                const result = await submitInvoiceContribution(invoiceData);
-                
-                if (result.success) {
-                    showAlert('Invoice saved successfully as contribution!', 'success');
-                    
-                    // Clear the invoice for next use
-                    invoiceItems = [];
-                    updateInvoiceDisplay();
-                    
-                    // Increment invoice number for next invoice
-                    invoiceNumber++;
-                    document.getElementById('invoiceNumber').textContent = `INV-${String(invoiceNumber).padStart(3, '0')}`;
-                } else {
-                    showAlert(`Failed to save invoice: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                console.error('Error saving invoice:', error);
-                showAlert(`Error saving invoice: ${error.message}`, 'error');
-            } finally {
-                // Restore button state
-                saveBtn.disabled = false;
-                saveBtn.textContent = originalText;
-            }
         }
 
         function processScannedUPC(upcCode) {

@@ -1483,11 +1483,12 @@
 
         // Check for digital signature in localStorage
         async function checkDigitalSignature() {
-            const digitalSignature = localStorage.getItem('userDigitalSignature');
+            const digitalSignature = localStorage.getItem('publicKey');
+            const privateKey = localStorage.getItem('privateKey');
             
-            if (!digitalSignature) {
-                // No digital signature found, redirect to register device
-                showAlert('Device not registered. Redirecting to device registration...', 'warning');
+            if (!digitalSignature || !privateKey) {
+                // No digital signature or private key found, redirect to register device
+                showAlert('Device not registered. Missing digital signature or private key. Redirecting to device registration...', 'warning');
                 setTimeout(() => {
                     window.location.href = 'register_device.html';
                 }, 2000);
@@ -2442,7 +2443,7 @@
             } catch (error) {
                 console.error('Error generating cryptographic signature:', error);
                 // Fallback to simple hash if cryptographic signing fails
-                const digitalSignature = localStorage.getItem('userDigitalSignature');
+                const digitalSignature = localStorage.getItem('publicKey');
                 const signatureData = content + digitalSignature + 'POS_SIGNATURE_SALT';
                 return simpleHash(signatureData);
             }
@@ -2470,12 +2471,13 @@
 
         // Generate signed payload for DAO contribution
         async function generateSignedPayload(invoiceData) {
-            const digitalSignature = localStorage.getItem('userDigitalSignature');
+            const digitalSignature = localStorage.getItem('publicKey');
             const employeeName = localStorage.getItem('employeeName');
-            const publicKey = digitalSignature; // Use digital signature as public key
+            debugger;
+            const publicKey = digitalSignature;
             
             if (!digitalSignature || !employeeName) {
-                throw new Error('Digital signature or employee name not found');
+                throw new Error('Digital signature, employee name, or public key not found');
             }
 
             // Create the content to sign (ending with -------- like DApp)
@@ -2568,7 +2570,7 @@ This invoice represents a sales transaction contribution to the TrueSight DAO ec
 
         // Generate signed payload for UPC linking contribution
         async function generateUPCLinkingPayload(upcData) {
-            const digitalSignature = localStorage.getItem('userDigitalSignature');
+            const digitalSignature = localStorage.getItem('publicKey');
             const employeeName = localStorage.getItem('employeeName');
             const publicKey = digitalSignature; // Use digital signature as public key
             
@@ -2796,6 +2798,8 @@ This contribution links a UPC barcode to an existing product in the inventory sy
             const saveBtn = document.getElementById('saveInvoiceBtn');
             const originalText = saveBtn.textContent;
             
+            let result = null; // Declare result outside try block so it's accessible in finally
+            
             try {
                 // Show loading state
                 saveBtn.disabled = true;
@@ -2817,7 +2821,7 @@ This contribution links a UPC barcode to an existing product in the inventory sy
                 
                 // Submit as contribution
                 console.log('Calling submitInvoiceContribution...');
-                const result = await submitInvoiceContribution(invoiceData);
+                result = await submitInvoiceContribution(invoiceData);
                 console.log('Submit result:', result);
                 
                 if (result.success) {

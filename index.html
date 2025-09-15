@@ -372,7 +372,7 @@
             console.log('All localStorage keys:', Object.keys(localStorage));
             console.log('All localStorage values:', Object.entries(localStorage));
             
-            const digitalSignature = localStorage.getItem('userDigitalSignature');
+            const digitalSignature = localStorage.getItem('publicKey');
             console.log('Digital signature from localStorage:', digitalSignature ? 'Found' : 'Not found');
             if (digitalSignature) {
                 console.log('Signature value:', digitalSignature.substring(0, 20) + '...');

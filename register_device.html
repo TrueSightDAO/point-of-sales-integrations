@@ -479,50 +479,49 @@
     </div>
 
     <script>
-        // Generate a simple hash function for content
-        function simpleHash(str) {
-            let hash = 0;
-            if (str.length === 0) return hash.toString();
-            for (let i = 0; i < str.length; i++) {
-                const char = str.charCodeAt(i);
-                hash = ((hash << 5) - hash) + char;
-                hash = hash & hash; // Convert to 32-bit integer
-            }
-            return Math.abs(hash).toString(16);
+        // Utility function for Base64 conversion
+        function arrayBufferToBase64(buffer) {
+            return btoa(String.fromCharCode(...new Uint8Array(buffer)));
         }
 
-        // Generate a digital signature
-        function generateSignature(name, content, purpose) {
-            const timestamp = new Date().toISOString();
-            const contentHash = simpleHash(content);
-            const signerHash = simpleHash(name.toLowerCase().trim());
-            
-            // Create a signature payload
-            const signatureData = {
-                signer: name,
-                content: content,
-                purpose: purpose || 'Digital Signature',
-                timestamp: timestamp,
-                contentHash: contentHash,
-                signerHash: signerHash
-            };
-            
-            // Generate a unique signature based on all the data
-            const signatureString = JSON.stringify(signatureData);
-            const signatureHash = simpleHash(signatureString);
-            
-            // Create a more complex signature
-            const signature = btoa(JSON.stringify({
-                ...signatureData,
-                signature: signatureHash,
-                version: '1.0',
-                algorithm: 'POS-SHA256'
-            }));
-            
-            return {
-                signature: signature,
-                data: signatureData
-            };
+        // Generate RSA key pair and digital signature
+        async function generateSignature(name, content, purpose) {
+            try {
+                const keyPair = await window.crypto.subtle.generateKey(
+                    {
+                        name: "RSASSA-PKCS1-v1_5",
+                        modulusLength: 2048,
+                        publicExponent: new Uint8Array([1, 0, 1]),
+                        hash: "SHA-256"
+                    },
+                    true,
+                    ["sign", "verify"]
+                );
+
+                const publicKey = await window.crypto.subtle.exportKey("spki", keyPair.publicKey);
+                const privateKey = await window.crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
+                
+                const publicKeyBase64 = arrayBufferToBase64(publicKey);
+                const privateKeyBase64 = arrayBufferToBase64(privateKey);
+
+                // Create signature data for display purposes
+                const signatureData = {
+                    signer: name,
+                    content: content,
+                    purpose: purpose || 'Digital Signature',
+                    timestamp: new Date().toISOString(),
+                    publicKey: publicKeyBase64
+                };
+                
+                return {
+                    signature: publicKeyBase64,
+                    privateKey: privateKeyBase64,
+                    data: signatureData
+                };
+            } catch (error) {
+                console.error('Error generating cryptographic keys:', error);
+                throw new Error('Failed to generate digital signature: ' + error.message);
+            }
         }
 
         // Show alert
@@ -630,7 +629,7 @@ This submission was generated using ${window.location.href}`;
         }
 
         // Generate signature function (called by button)
-        function handleGenerateSignature() {
+        async function handleGenerateSignature() {
             const signerName = document.getElementById('signerName').value.trim();
             
             if (!signerName) {
@@ -642,40 +641,38 @@ This submission was generated using ${window.location.href}`;
             document.getElementById('loading').style.display = 'block';
             document.getElementById('resultSection').style.display = 'none';
             
-            // Simulate processing time
-            setTimeout(() => {
-                try {
-                    // Generate signature for sales reporting
-                    const result = generateSignature(signerName, 'SALES_REPORTING_SIGNATURE', 'Sales Reporting');
-                    
-                    // Save to localStorage for sales reporting
-                    localStorage.setItem('userDigitalSignature', result.signature);
-                    localStorage.setItem('employeeName', signerName);
-                    
-                    console.log('Signature saved to localStorage:', {
-                        key: 'userDigitalSignature',
-                        value: result.signature.substring(0, 20) + '...',
-                        employeeName: signerName
-                    });
-                    
-                    // Hide loading and form, show current signature section
-                    document.getElementById('loading').style.display = 'none';
-                    document.getElementById('signatureForm').style.display = 'none';
-                    displayCurrentSignature(signerName, result.signature);
-                    
-                    // Update button visibility
-                    document.getElementById('generateButton').style.display = 'none';
-                    document.getElementById('registerButton').style.display = 'none';
-                    document.getElementById('registerCurrentButton').style.display = 'block';
-                    document.getElementById('regenerateButton').style.display = 'block';
-                    document.getElementById('startInvoiceButton').style.display = 'block';
-                    
-                    showAlert('Digital signature generated and saved for sales reporting!', 'success');
-                } catch (error) {
-                    document.getElementById('loading').style.display = 'none';
-                    showAlert('Error generating signature: ' + error.message, 'error');
-                }
-            }, 1500);
+            try {
+                // Generate cryptographic signature for sales reporting
+                const result = await generateSignature(signerName, 'SALES_REPORTING_SIGNATURE', 'Sales Reporting');
+                
+                // Save to localStorage for sales reporting (following dapp pattern)
+                localStorage.setItem('publicKey', result.signature);
+                localStorage.setItem('privateKey', result.privateKey);
+                localStorage.setItem('employeeName', signerName);
+                
+                console.log('Signature saved to localStorage:', {
+                    publicKey: result.signature.substring(0, 20) + '...',
+                    privateKey: result.privateKey.substring(0, 20) + '...',
+                    employeeName: signerName
+                });
+                
+                // Hide loading and form, show current signature section
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('signatureForm').style.display = 'none';
+                displayCurrentSignature(signerName, result.signature);
+                
+                // Update button visibility
+                document.getElementById('generateButton').style.display = 'none';
+                document.getElementById('registerButton').style.display = 'none';
+                document.getElementById('registerCurrentButton').style.display = 'block';
+                document.getElementById('regenerateButton').style.display = 'block';
+                document.getElementById('startInvoiceButton').style.display = 'none'; // Hide since not registered with server yet
+                
+                showAlert('Digital signature generated and saved for sales reporting!', 'success');
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                showAlert('Error generating signature: ' + error.message, 'error');
+            }
         }
 
 
@@ -690,43 +687,54 @@ This submission was generated using ${window.location.href}`;
             console.log('checkExistingSignature called');
             console.log('All localStorage keys:', Object.keys(localStorage));
             
-            const digitalSignature = localStorage.getItem('userDigitalSignature');
+            const digitalSignature = localStorage.getItem('publicKey');
+            const privateKey = localStorage.getItem('privateKey');
             console.log('Digital signature from localStorage:', digitalSignature ? 'Found' : 'Not found');
+            console.log('Private key from localStorage:', privateKey ? 'Found' : 'Not found');
             
-            if (digitalSignature) {
-                // Verify signature with server
-                const verification = await verifyDigitalSignature(digitalSignature);
+            // If either key is missing, treat as no signature created yet
+            if (!digitalSignature || !privateKey) {
+                console.log('Missing digital signature or private key - treating as no signature created yet');
+                // Clear any partial data to ensure clean state
+                localStorage.removeItem('publicKey');
+                localStorage.removeItem('privateKey');
+                localStorage.removeItem('employeeName');
+                localStorage.removeItem('employeeId');
+                showRegistrationForm();
+                return;
+            }
+            
+            // Both keys exist, verify signature with server
+            const verification = await verifyDigitalSignature(digitalSignature);
+            
+            if (verification.valid) {
+                // Signature is valid, update localStorage with server data
+                localStorage.setItem('employeeName', verification.employee_name);
+                localStorage.setItem('employeeId', verification.employee_id);
                 
-                if (verification.valid) {
-                    // Signature is valid, update localStorage with server data
-                    localStorage.setItem('employeeName', verification.employee_name);
-                    localStorage.setItem('employeeId', verification.employee_id);
-                    
-                    displayCurrentSignature(verification.employee_name, digitalSignature);
-                    // Hide the form when signature exists
-                    document.getElementById('signatureForm').style.display = 'none';
-                    // Show regenerate and start invoice buttons (hide register button since already registered)
-                    document.getElementById('regenerateButton').style.display = 'inline-block';
-                    document.getElementById('registerCurrentButton').style.display = 'none'; // Hide since already registered
-                    document.getElementById('startInvoiceButton').style.display = 'inline-block';
-                    document.getElementById('generateButton').style.display = 'none';
-                    document.getElementById('registerButton').style.display = 'none';
-                } else {
-                    // Signature not found on server - keep localStorage but show warning
-                    showAlert('Device signature not registered with server. Please register with admin to enable invoice creation.', 'warning');
-                    showRegistrationForm();
-                }
+                displayCurrentSignature(verification.employee_name, digitalSignature);
+                // Hide the form when signature exists
+                document.getElementById('signatureForm').style.display = 'none';
+                // Show regenerate and start invoice buttons (hide register button since already registered)
+                document.getElementById('regenerateButton').style.display = 'inline-block';
+                document.getElementById('registerCurrentButton').style.display = 'none'; // Hide since already registered
+                document.getElementById('startInvoiceButton').style.display = 'inline-block'; // Show since registered
+                document.getElementById('generateButton').style.display = 'none';
+                document.getElementById('registerButton').style.display = 'none';
             } else {
-                // No signature in localStorage
+                // Signature not found on server - keep localStorage but show warning
+                showAlert('Device signature not registered with server. Please register with admin to enable invoice creation.', 'warning');
                 showRegistrationForm();
             }
         }
 
         // Show registration form
         function showRegistrationForm() {
-            const digitalSignature = localStorage.getItem('userDigitalSignature');
+            const digitalSignature = localStorage.getItem('publicKey');
+            const privateKey = localStorage.getItem('privateKey');
             
-            if (digitalSignature) {
+            // Only show existing signature if BOTH keys are present
+            if (digitalSignature && privateKey) {
                 // Signature exists but not registered with server - show current signature and register button
                 const employeeName = localStorage.getItem('employeeName') || 'Unknown Employee';
                 displayCurrentSignature(employeeName, digitalSignature);
@@ -737,17 +745,17 @@ This submission was generated using ${window.location.href}`;
                 document.getElementById('generateButton').style.display = 'none';
                 document.getElementById('regenerateButton').style.display = 'inline-block';
                 document.getElementById('registerCurrentButton').style.display = 'inline-block';
-                document.getElementById('startInvoiceButton').style.display = 'none'; // Hide since not registered
+                document.getElementById('startInvoiceButton').style.display = 'none'; // Hide since not registered with server
                 document.getElementById('registerButton').style.display = 'none';
             } else {
-                // No signature - show form to generate one
+                // No complete signature - show form to generate one
                 document.getElementById('signatureForm').style.display = 'block';
                 document.getElementById('currentSignatureSection').style.display = 'none';
                 // Show generate button
                 document.getElementById('generateButton').style.display = 'inline-block';
                 document.getElementById('regenerateButton').style.display = 'none';
                 document.getElementById('registerCurrentButton').style.display = 'none';
-                document.getElementById('startInvoiceButton').style.display = 'none';
+                document.getElementById('startInvoiceButton').style.display = 'none'; // Hide since no signature
                 document.getElementById('registerButton').style.display = 'none';
             }
         }
@@ -788,8 +796,10 @@ This submission was generated using ${window.location.href}`;
         // Regenerate signature (clears current and allows new generation)
         function regenerateSignature() {
             if (confirm('Are you sure you want to regenerate your digital signature? This will clear your current signature.')) {
-                localStorage.removeItem('userDigitalSignature');
+                localStorage.removeItem('publicKey');
+                localStorage.removeItem('privateKey');
                 localStorage.removeItem('employeeName');
+                localStorage.removeItem('employeeId');
                 document.getElementById('currentSignatureSection').style.display = 'none';
                 document.getElementById('resultSection').style.display = 'none';
                 document.getElementById('signatureForm').style.display = 'block';

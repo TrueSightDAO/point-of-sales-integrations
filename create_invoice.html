@@ -1377,8 +1377,8 @@
                         <button id="saveInvoiceBtn" class="btn btn-success" onclick="saveInvoice()" disabled>
                             💾 Save Invoice
                         </button>
-                    </div>
                 </div>
+            </div>
                 
                 <!-- Success Message Display -->
                 <div id="invoiceSuccessMessage" class="invoice-success-message" style="display: none;">
@@ -2242,6 +2242,16 @@
             document.getElementById('autocompleteDropdown').style.display = 'none';
             window.currentUPC = null;
             window.selectedProduct = null;
+            
+            // Clear the input field
+            const productNameInput = document.getElementById('productNameInput');
+            if (productNameInput) {
+                productNameInput.value = '';
+            }
+            
+            // Resume scanning automatically
+            enableScanning();
+            console.log('Product selection cancelled - resuming scanning');
         }
 
         // Save the product name and add to invoice
@@ -2815,11 +2825,12 @@ This contribution links a UPC barcode to an existing product in the inventory sy
                     console.log('Full result:', result);
                     
                     // Display the HelloCash invoice number (the reference users see in HelloCash)
-                    const invoiceNumber = result.hellocash_result?.invoice_number;
-                    const invoiceId = result.hellocash_result?.invoice_id;
+                    const invoiceNumber = result.result?.hellocash_result?.invoice_number;
+                    const invoiceId = result.result?.hellocash_result?.invoice_id;
                     
                     console.log('Invoice number:', invoiceNumber);
                     console.log('Invoice ID:', invoiceId);
+                    console.log('Full response:', result.result?.hellocash_result?.full_response);
                     console.log('Will show success for:', invoiceNumber || invoiceId);
                     
                     // Show success message with invoice details
@@ -2831,9 +2842,12 @@ This contribution links a UPC barcode to an existing product in the inventory sy
                 console.error('Error saving invoice:', error);
                 showAlert(`Error saving invoice: ${error.message}`, 'error');
             } finally {
-                // Restore button state
-                saveBtn.disabled = false;
-                saveBtn.textContent = originalText;
+                // Only restore button state if there was an error
+                // If successful, the button text is managed by showInvoiceSuccess()
+                if (!result || !result.success) {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = originalText;
+                }
             }
         }
 
@@ -2886,7 +2900,7 @@ This contribution links a UPC barcode to an existing product in the inventory sy
             const scanAnotherBtn = document.getElementById('scanAnotherBtn');
             if (scanAnotherBtn) {
                 scanAnotherBtn.textContent = '🔍 Scanning...';
-                scanAnotherBtn.disabled = true;
+            scanAnotherBtn.disabled = true;
             }
             
             // Update scan instructions
@@ -2904,8 +2918,8 @@ This contribution links a UPC barcode to an existing product in the inventory sy
             // Update button states
             const scanAnotherBtn = document.getElementById('scanAnotherBtn');
             if (scanAnotherBtn) {
-                scanAnotherBtn.textContent = '🔍 Scan Another';
-                scanAnotherBtn.disabled = false;
+            scanAnotherBtn.textContent = '🔍 Scan Another';
+            scanAnotherBtn.disabled = false;
             }
             
             // Update scan instructions
@@ -2920,6 +2934,7 @@ This contribution links a UPC barcode to an existing product in the inventory sy
             const successMessage = document.getElementById('invoiceSuccessMessage');
             const successInvoiceNumber = document.getElementById('successInvoiceNumber');
             const searchInvoiceNumber = document.getElementById('searchInvoiceNumber');
+
             const saveBtn = document.getElementById('saveInvoiceBtn');
             
             if (!successMessage) {
@@ -2939,7 +2954,7 @@ This contribution links a UPC barcode to an existing product in the inventory sy
             
             // Change button to "Create New Invoice" and enable it
             if (saveBtn) {
-                saveBtn.textContent = '💾 Create New Invoice';
+                saveBtn.textContent = 'Create New Invoice';
                 saveBtn.disabled = false;
                 saveBtn.style.opacity = '1';
                 saveBtn.style.cursor = 'pointer';
@@ -2990,6 +3005,12 @@ This contribution links a UPC barcode to an existing product in the inventory sy
             // Automatically start scanning
             isScanningEnabled = true;
             startBarcodeScanning();
+            
+            // Scroll camera into view
+            const cameraSection = document.querySelector('.scanner-section');
+            if (cameraSection) {
+                cameraSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
             
             // Show alert for new invoice
             showAlert('Ready to create a new invoice. Camera is scanning for products!', 'success');

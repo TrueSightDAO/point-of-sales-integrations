@@ -2206,17 +2206,81 @@
             return Math.abs(hash).toString();
         }
 
+        // Generate cryptographic signature like DApp (matching DApp approach)
+        async function generateCryptographicSignature(content) {
+            try {
+                // Get the private key from localStorage (stored as base64)
+                const privateKeyBase64 = localStorage.getItem('privateKey');
+                if (!privateKeyBase64) {
+                    throw new Error('Private key not found in localStorage');
+                }
+
+                // Convert base64 to ArrayBuffer
+                const privateKeyBuffer = base64ToArrayBuffer(privateKeyBase64);
+
+                // Import the private key
+                const privateKeyObj = await window.crypto.subtle.importKey(
+                    "pkcs8",
+                    privateKeyBuffer,
+                    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+                    false,
+                    ["sign"]
+                );
+
+                // Sign the content
+                const encoder = new TextEncoder();
+                const signature = await window.crypto.subtle.sign(
+                    "RSASSA-PKCS1-v1_5",
+                    privateKeyObj,
+                    encoder.encode(content)
+                );
+
+                // Convert signature to base64 (this becomes the Request Transaction ID)
+                const requestHash = arrayBufferToBase64(signature);
+                return requestHash;
+
+            } catch (error) {
+                console.error('Error generating cryptographic signature:', error);
+                // Fallback to simple hash if cryptographic signing fails
+                const digitalSignature = localStorage.getItem('userDigitalSignature');
+                const signatureData = content + digitalSignature + 'POS_SIGNATURE_SALT';
+                return simpleHash(signatureData);
+            }
+        }
+
+        // Helper function to convert base64 to ArrayBuffer
+        function base64ToArrayBuffer(base64) {
+            const binary = atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        // Helper function to convert ArrayBuffer to base64
+        function arrayBufferToBase64(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+        }
+
         // Generate signed payload for DAO contribution
-        function generateSignedPayload(invoiceData) {
+        async function generateSignedPayload(invoiceData) {
             const digitalSignature = localStorage.getItem('userDigitalSignature');
             const employeeName = localStorage.getItem('employeeName');
+            const publicKey = localStorage.getItem('publicKey');
             
-            if (!digitalSignature || !employeeName) {
-                throw new Error('Digital signature or employee name not found');
+            if (!digitalSignature || !employeeName || !publicKey) {
+                throw new Error('Digital signature, employee name, or public key not found');
             }
 
-            // Create the content to sign
+            // Create the content to sign (ending with -------- like DApp)
             const content = `[INVOICE CONTRIBUTION]
+domain: ${window.location.origin}
 invoice number: ${invoiceData.invoiceNumber}
 date: ${invoiceData.date}
 employee: ${employeeName}
@@ -2229,24 +2293,17 @@ items:
 ${invoiceData.items.map(item => 
     `- ${item.article_name} (UPC: ${item.upc_code}) - Qty: ${item.quantity} - $${item.totalGross.toFixed(2)}`
 ).join('\n')}
+This invoice represents a sales transaction contribution to the TrueSight DAO ecosystem.--------`;
 
-This invoice represents a sales transaction contribution to the TrueSight DAO ecosystem.`;
+            // Generate Request Transaction ID using cryptographic signing (matching DApp approach)
+            const requestTransactionId = await generateCryptographicSignature(content);
 
-            // Generate transaction ID
-            const timestamp = Date.now();
-            const transactionId = `INV_${timestamp}_${simpleHash(content)}`;
-
-            // Create the full payload
-            const payload = `${content}
---------
-
-My Digital Signature: ${digitalSignature}
-
-Request Transaction ID: ${transactionId}`;
-
+            // Create the full payload in DApp format (matching verify_request.html exactly - 3 parts only)
+            const payload = `${content}\n\nMy Digital Signature: ${publicKey}\n\nRequest Transaction ID: ${requestTransactionId}`;
+            
             return {
                 payload: payload,
-                transactionId: transactionId,
+                transactionId: requestTransactionId,
                 content: content
             };
         }
@@ -2255,7 +2312,7 @@ Request Transaction ID: ${transactionId}`;
         async function submitInvoiceContribution(invoiceData) {
             try {
                 // Generate signed payload
-                const signedPayload = generateSignedPayload(invoiceData);
+                const signedPayload = await generateSignedPayload(invoiceData);
                 
                 console.log('Submitting invoice contribution:', {
                     transactionId: signedPayload.transactionId,
@@ -2297,40 +2354,35 @@ Request Transaction ID: ${transactionId}`;
         }
 
         // Generate signed payload for UPC linking contribution
-        function generateUPCLinkingPayload(upcData) {
+        async function generateUPCLinkingPayload(upcData) {
             const digitalSignature = localStorage.getItem('userDigitalSignature');
             const employeeName = localStorage.getItem('employeeName');
+            const publicKey = localStorage.getItem('publicKey');
             
-            if (!digitalSignature || !employeeName) {
-                throw new Error('Digital signature or employee name not found');
+            if (!digitalSignature || !employeeName || !publicKey) {
+                throw new Error('Digital signature, employee name, or public key not found');
             }
 
-            // Create the content to sign
+            // Create the content to sign (ending with -------- like DApp)
             const content = `[UPC LINKING CONTRIBUTION]
+domain: ${window.location.origin}
 action: ${upcData.action}
 product id: ${upcData.product_id}
 product name: ${upcData.product_name}
 upc code: ${upcData.upc_code}
 employee: ${employeeName}
 timestamp: ${upcData.timestamp}
+This contribution links a UPC barcode to an existing product in the inventory system for the TrueSight DAO ecosystem.--------`;
 
-This contribution links a UPC barcode to an existing product in the inventory system for the TrueSight DAO ecosystem.`;
+            // Generate Request Transaction ID using cryptographic signing (matching DApp approach)
+            const requestTransactionId = await generateCryptographicSignature(content);
 
-            // Generate transaction ID
-            const timestamp = Date.now();
-            const transactionId = `UPC_${timestamp}_${simpleHash(content)}`;
-
-            // Create the full payload
-            const payload = `${content}
---------
-
-My Digital Signature: ${digitalSignature}
-
-Request Transaction ID: ${transactionId}`;
+            // Create the full payload in DApp format (matching verify_request.html exactly - 3 parts only)
+            const payload = `${content}\n\nMy Digital Signature: ${publicKey}\n\nRequest Transaction ID: ${requestTransactionId}`;
 
             return {
                 payload: payload,
-                transactionId: transactionId,
+                transactionId: requestTransactionId,
                 content: content
             };
         }
@@ -2339,7 +2391,7 @@ Request Transaction ID: ${transactionId}`;
         async function submitUPCContribution(upcData) {
             try {
                 // Generate signed payload
-                const signedPayload = generateUPCLinkingPayload(upcData);
+                const signedPayload = await generateUPCLinkingPayload(upcData);
                 
                 console.log('Submitting UPC linking contribution:', {
                     transactionId: signedPayload.transactionId,
@@ -2353,7 +2405,9 @@ Request Transaction ID: ${transactionId}`;
                 
                 // Sandbox
                 const api_url = 'http://localhost:3000/dao/express_submit_contribution';
-                
+
+                console.log(signedPayload.payload);
+
                 const response = await fetch(api_url, {
                     method: 'POST',
                     headers: {

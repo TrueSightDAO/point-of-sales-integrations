@@ -609,21 +609,6 @@
                 font-size: 0.9rem;
             }
             
-            .instructions {
-                padding: 15px;
-            }
-            
-            .instructions h4 {
-                font-size: 1.1rem;
-            }
-            
-            .instructions ul {
-                font-size: 0.9rem;
-            }
-            
-            .instructions li {
-                margin-bottom: 8px;
-            }
             
             .alert {
                 padding: 12px;
@@ -737,36 +722,6 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
-        .invoice-header {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-        }
-
-        .invoice-info {
-            display: flex;
-            gap: 30px;
-            flex-wrap: wrap;
-        }
-
-        .invoice-field {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .invoice-field label {
-            font-weight: 600;
-            color: #34495e;
-            font-size: 0.9rem;
-        }
-
-        .invoice-field span {
-            color: #2c3e50;
-            font-size: 1.1rem;
-        }
 
         .invoice-items-section {
             background: white;
@@ -856,6 +811,94 @@
             border-radius: 12px;
             padding: 20px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .how-to-use-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+
+        .how-to-content {
+            margin-top: 15px;
+        }
+
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+
+        .step-number {
+            background: #007bff;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .step-content h4 {
+            margin: 0 0 8px 0;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .step-content p {
+            margin: 0;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .tips-section {
+            margin-top: 25px;
+            padding: 15px;
+            background: #e8f4fd;
+            border-radius: 8px;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .tips-section h4 {
+            margin: 0 0 12px 0;
+            color: #17a2b8;
+            font-size: 16px;
+        }
+
+        .tips-section ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .tips-section li {
+            margin-bottom: 8px;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 768px) {
+            .step {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .step-number {
+                margin: 0 auto 10px auto;
+            }
+
+            .step-content {
+                text-align: left;
+            }
         }
 
         .totals-container {
@@ -1098,27 +1141,6 @@
             display: block;
         }
 
-        .instructions {
-            background: #e3f2fd;
-            border-left: 4px solid #3498db;
-            padding: 20px;
-            margin-bottom: 25px;
-            border-radius: 0 8px 8px 0;
-        }
-
-        .instructions h4 {
-            color: #1976d2;
-            margin-bottom: 10px;
-        }
-
-        .instructions ul {
-            color: #34495e;
-            padding-left: 20px;
-        }
-
-        .instructions li {
-            margin-bottom: 5px;
-        }
 
         /* Responsive Design */
         @media (max-width: 768px) {
@@ -1159,18 +1181,6 @@
             <p>Create invoices by scanning product UPC codes</p>
         </div>
 
-        <div class="status-bar">
-            <div class="status-item">
-                <div class="status-indicator" id="inventoryStatus"></div>
-                <span>Inventory Status: <span id="inventoryStatusText">Loading...</span></span>
-            </div>
-            <div class="status-item">
-                <span>Items Loaded: <span id="itemCount">0</span></span>
-            </div>
-            <div class="status-item">
-                <span>Last Updated: <span id="lastUpdated">Never</span></span>
-            </div>
-        </div>
 
         <div class="alert alert-success" id="successAlert"></div>
         <div class="alert alert-error" id="errorAlert"></div>
@@ -1195,36 +1205,8 @@
             </div>
         </div>
 
-        <div class="instructions">
-            <h4>How to use:</h4>
-            <ul>
-                <li>Enter or scan a UPC code in the input field</li>
-                <li>The system will automatically search the inventory database</li>
-                <li>If a match is found, product details will be displayed</li>
-                <li>If no match is found, you can select from similar products</li>
-                <li>All scans are saved in the recent scans history</li>
-            </ul>
-        </div>
 
         <div class="main-content">
-            <!-- Invoice Header -->
-            <div class="invoice-header">
-                <h3 class="section-title">🧾 New Invoice</h3>
-                <div class="invoice-info">
-                    <div class="invoice-field">
-                        <label>Invoice #:</label>
-                        <span id="invoiceNumber">INV-001</span>
-                    </div>
-                    <div class="invoice-field">
-                        <label>Date:</label>
-                        <span id="invoiceDate"></span>
-                    </div>
-                    <div class="invoice-field">
-                        <label>Employee:</label>
-                        <span id="employeeName">Loading...</span>
-                    </div>
-                </div>
-            </div>
 
             <!-- Scanner Section -->
             <div class="scanner-section">
@@ -1303,6 +1285,68 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <div class="status-item">
+                    <div class="status-indicator" id="inventoryStatus"></div>
+                    <span>Inventory Status: <span id="inventoryStatusText">Loading...</span></span>
+                </div>
+                <div class="status-item">
+                    <span>Items Loaded: <span id="itemCount">0</span></span>
+                </div>
+                <div class="status-item">
+                    <span>Last Updated: <span id="lastUpdated">Never</span></span>
+                </div>
+            </div>
+
+            <!-- How to Use Section -->
+            <div class="how-to-use-section">
+                <h3 class="section-title">📖 How to Use</h3>
+                <div class="how-to-content">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>🔍 Scan Products</h4>
+                            <p>Click "Start Scanning" to activate the camera. Position UPC barcodes within the frame to automatically add products to your invoice.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>📝 Review Items</h4>
+                            <p>Each scanned item appears in the invoice list above. You can remove items using the 🗑️ button if needed.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>💾 Save Invoice</h4>
+                            <p>Once all items are scanned, click "Save Invoice" to process the transaction through HelloCash.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h4>🔄 Scan More</h4>
+                            <p>After saving, click "Scan Another" to add more items or start a new invoice.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tips-section">
+                    <h4>💡 Tips</h4>
+                    <ul>
+                        <li>Ensure good lighting for better barcode scanning</li>
+                        <li>Hold the barcode steady within the camera frame</li>
+                        <li>If a product isn't recognized, you can manually select it from the inventory</li>
+                        <li>The system automatically calculates tax and totals</li>
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1311,7 +1355,7 @@
         let inventoryData = [];
         let recentScans = JSON.parse(localStorage.getItem('upcRecentScans') || '[]');
         let invoiceItems = [];
-        let invoiceNumber = 1;
+        // Invoice number will be provided by HelloCash API
         let isScanningEnabled = false; // Controls whether to process barcode detections
 
         // API endpoint for inventory
@@ -1382,11 +1426,14 @@
             // Optimize for mobile
             optimizeForMobile();
             
-            // Start camera immediately since it's the only option
+            // Start camera after everything is loaded
             setTimeout(() => {
                 console.log('About to start camera...');
-                startCamera();
-            }, 1000); // Wait for inventory to load first
+                startCamera().catch(error => {
+                    console.log('Initial camera start failed, user will need to click Start Camera button:', error);
+                    // Don't show error alert for automatic start failure
+                });
+            }, 2000); // Wait longer for everything to load
         });
 
         // Load inventory from API
@@ -1680,6 +1727,7 @@
 
         // Start camera for barcode scanning
         async function startCamera() {
+            console.log('=== START CAMERA FUNCTION CALLED ===');
             console.log('Starting camera...');
             try {
                 const video = document.getElementById('cameraVideo');
@@ -1716,13 +1764,20 @@
                     </div>
                 `;
                 
-                // Get the new video element
+                // Get the new video element and set up the stream
                 const newVideo = document.getElementById('cameraVideo');
-                newVideo.srcObject = stream;
-                newVideo.play();
+                if (newVideo) {
+                    newVideo.srcObject = stream;
+                    newVideo.play().catch(e => console.log('Video play error:', e));
+                } else {
+                    console.error('Video element not found after recreating camera interface');
+                    throw new Error('Video element not found');
+                }
                 
-                // Start barcode scanning
-                startBarcodeScanning();
+                // Wait for video to be ready, then start barcode scanning
+                setTimeout(() => {
+                    startBarcodeScanning();
+                }, 500);
                 
                 // Update button states
                 const startBtn = document.getElementById('startScanBtn');
@@ -1778,9 +1833,24 @@
 
         // Start barcode scanning using QuaggaJS
         function startBarcodeScanning() {
-            if (isScanning) return;
+            console.log('Starting barcode scanning...');
+            if (isScanning) {
+                console.log('Already scanning, skipping');
+                return;
+            }
             
             isScanning = true;
+            
+            // Check if video element exists
+            const videoElement = document.querySelector('#cameraVideo');
+            if (!videoElement) {
+                console.error('Video element not found for QuaggaJS');
+                showAlert('Camera not ready for scanning', 'error');
+                isScanning = false;
+                return;
+            }
+            
+            console.log('Video element found, initializing QuaggaJS...');
             
             // Initialize QuaggaJS
             Quagga.init({
@@ -2279,22 +2349,33 @@
             }
 
             // Create the content to sign (ending with -------- like DApp)
+            const employeeId = localStorage.getItem('employeeId');
             const content = `[INVOICE CONTRIBUTION]
 domain: ${window.location.origin}
-invoice number: ${invoiceData.invoiceNumber}
 date: ${invoiceData.date}
 employee: ${employeeName}
+employee id: ${employeeId}
 total items: ${invoiceData.items.length}
 total amount: $${invoiceData.totalAmount.toFixed(2)}
 subtotal: $${invoiceData.subtotal.toFixed(2)}
 tax: $${invoiceData.tax.toFixed(2)}
 
 items:
-${invoiceData.items.map(item => 
-    `- ${item.article_name} (UPC: ${item.upc_code}) - Qty: ${item.quantity} - $${item.totalGross.toFixed(2)}`
-).join('\n')}
-This invoice represents a sales transaction contribution to the TrueSight DAO ecosystem.--------`;
+${invoiceData.items.map(item => {
+    const totalGross = (parseFloat(item.gross_selling_price) || 0) * (parseInt(item.quantity) || 1);
+    return `- ${item.article_name} (ID: ${item.article_id}, UPC: "${item.upc_code}") - Qty: ${item.quantity} - $${totalGross.toFixed(2)}`;
+}).join('\n')}
 
+This invoice represents a sales transaction contribution to the TrueSight DAO ecosystem.
+--------`;
+
+            // Debug: Log the content being signed
+            console.log('=== INVOICE CONTENT BEING SIGNED ===');
+            console.log('Content:', JSON.stringify(content));
+            console.log('Content length:', content.length);
+            console.log('Content bytes:', new TextEncoder().encode(content));
+            console.log('=== END INVOICE CONTENT DEBUG ===');
+            
             // Generate Request Transaction ID using cryptographic signing (matching DApp approach)
             const requestTransactionId = await generateCryptographicSignature(content);
 
@@ -2322,10 +2403,12 @@ This invoice represents a sales transaction contribution to the TrueSight DAO ec
 
                 // Submit to express_submit_contribution endpoint
                 // Production
-                // const api_url = 'https://edgar.truesight.me/dao/express_submit_contribution';
+                const api_url = 'https://edgar.truesight.me/dao/express_submit_contribution';
                 
                 // Sandbox
-                const api_url = 'http://localhost:3000/dao/express_submit_contribution';
+                // const api_url = 'http://localhost:3000/dao/express_submit_contribution';
+
+                console.log(signedPayload.payload);
                 
                 const response = await fetch(api_url, {
                     method: 'POST',
@@ -2369,10 +2452,12 @@ domain: ${window.location.origin}
 action: ${upcData.action}
 product id: ${upcData.product_id}
 product name: ${upcData.product_name}
-upc code: ${upcData.upc_code}
+upc code: "${upcData.upc_code}"
 employee: ${employeeName}
 timestamp: ${upcData.timestamp}
-This contribution links a UPC barcode to an existing product in the inventory system for the TrueSight DAO ecosystem.--------`;
+
+This contribution links a UPC barcode to an existing product in the inventory system for the TrueSight DAO ecosystem.
+--------`;
 
             // Generate Request Transaction ID using cryptographic signing (matching DApp approach)
             const requestTransactionId = await generateCryptographicSignature(content);
@@ -2401,10 +2486,10 @@ This contribution links a UPC barcode to an existing product in the inventory sy
 
                 // Submit to express_submit_contribution endpoint
                 // Production
-                // const api_url = 'https://edgar.truesight.me/dao/express_submit_contribution';
+                const api_url = 'https://edgar.truesight.me/dao/express_submit_contribution';
                 
                 // Sandbox
-                const api_url = 'http://localhost:3000/dao/express_submit_contribution';
+                // const api_url = 'http://localhost:3000/dao/express_submit_contribution';
 
                 console.log(signedPayload.payload);
 
@@ -2437,21 +2522,11 @@ This contribution links a UPC barcode to an existing product in the inventory sy
         function initializeInvoice() {
             // Set invoice date
             const today = new Date();
-            const dateString = today.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-            });
-            document.getElementById('invoiceDate').textContent = dateString;
+            // Date will be generated when saving the invoice
             
-            // Set invoice number
-            document.getElementById('invoiceNumber').textContent = `INV-${String(invoiceNumber).padStart(3, '0')}`;
+            // Invoice number will be set after HelloCash API response
             
-            // Update employee name
-            const employeeName = localStorage.getItem('employeeName');
-            if (employeeName) {
-                document.getElementById('employeeName').textContent = employeeName;
-            }
+            // Employee name is now displayed in the status bar
             
             // Initialize empty invoice
             invoiceItems = [];
@@ -2593,28 +2668,39 @@ This contribution links a UPC barcode to an existing product in the inventory sy
                 
                 // Prepare invoice data
                 const invoiceData = {
-                    invoiceNumber: document.getElementById('invoiceNumber').textContent,
-                    date: document.getElementById('invoiceDate').textContent,
-                    employee: document.getElementById('employeeName').textContent,
+                    date: new Date().toLocaleDateString('en-US'),
+                    employee: localStorage.getItem('employeeName'),
+                    employeeId: localStorage.getItem('employeeId'),
                     items: invoiceItems,
                     subtotal: parseFloat(document.getElementById('subtotal').textContent.replace('$', '')),
                     tax: parseFloat(document.getElementById('taxAmount').textContent.replace('$', '')),
                     totalAmount: parseFloat(document.getElementById('totalAmount').textContent.replace('$', ''))
                 };
                 
+                console.log('Prepared invoice data:', invoiceData);
+                console.log('Invoice items:', invoiceItems);
+                
                 // Submit as contribution
+                console.log('Calling submitInvoiceContribution...');
                 const result = await submitInvoiceContribution(invoiceData);
+                console.log('Submit result:', result);
                 
                 if (result.success) {
-                    showAlert('Invoice saved successfully as contribution!', 'success');
+                    // Display the HelloCash invoice number (the reference users see in HelloCash)
+                    const invoiceNumber = result.hellocash_result?.invoice_number;
+                    const invoiceId = result.hellocash_result?.invoice_id;
+                    
+                    if (invoiceNumber) {
+                        showAlert(`Invoice saved successfully! Invoice Number: #${invoiceNumber}`, 'success');
+                    } else if (invoiceId) {
+                        showAlert(`Invoice saved successfully! HelloCash Invoice ID: ${invoiceId}`, 'success');
+                    } else {
+                        showAlert('Invoice saved successfully as contribution!', 'success');
+                    }
                     
                     // Clear the invoice for next use
                     invoiceItems = [];
                     updateInvoiceDisplay();
-                    
-                    // Increment invoice number for next invoice
-                    invoiceNumber++;
-                    document.getElementById('invoiceNumber').textContent = `INV-${String(invoiceNumber).padStart(3, '0')}`;
                 } else {
                     showAlert(`Failed to save invoice: ${result.error}`, 'error');
                 }

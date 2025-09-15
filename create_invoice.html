@@ -2472,10 +2472,10 @@
         async function generateSignedPayload(invoiceData) {
             const digitalSignature = localStorage.getItem('userDigitalSignature');
             const employeeName = localStorage.getItem('employeeName');
-            const publicKey = localStorage.getItem('publicKey');
+            const publicKey = digitalSignature; // Use digital signature as public key
             
-            if (!digitalSignature || !employeeName || !publicKey) {
-                throw new Error('Digital signature, employee name, or public key not found');
+            if (!digitalSignature || !employeeName) {
+                throw new Error('Digital signature or employee name not found');
             }
 
             // Create the content to sign (ending with -------- like DApp)
@@ -2570,10 +2570,10 @@ This invoice represents a sales transaction contribution to the TrueSight DAO ec
         async function generateUPCLinkingPayload(upcData) {
             const digitalSignature = localStorage.getItem('userDigitalSignature');
             const employeeName = localStorage.getItem('employeeName');
-            const publicKey = localStorage.getItem('publicKey');
+            const publicKey = digitalSignature; // Use digital signature as public key
             
-            if (!digitalSignature || !employeeName || !publicKey) {
-                throw new Error('Digital signature, employee name, or public key not found');
+            if (!digitalSignature || !employeeName) {
+                throw new Error('Digital signature or employee name not found');
             }
 
             // Create the content to sign (ending with -------- like DApp)

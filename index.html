@@ -2,19 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="description" content="TrueSight DAO Point of Sales Integration Tools">
+    <meta name="description" content="Heierling Point of Sales - Scan UPC barcodes and create invoices through HelloCash integration">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Point of Sales Integrations - TrueSight DAO</title>
+    <title>Heierling Point of Sales - TrueSight DAO</title>
 
     <!-- Open Graph tags for WhatsApp and social media previews -->
-    <meta property="og:title" content="Point of Sales Integrations - TrueSight DAO">
-    <meta property="og:description" content="TrueSight DAO Point of Sales Integration Tools">
-    <meta property="og:image" content="https://github.com/TrueSightDAO/.github/blob/main/assets/20240612_truesight_dao_logo_square.png?raw=true">
+    <meta property="og:title" content="Heierling Point of Sales - TrueSight DAO">
+    <meta property="og:description" content="Heierling Point of Sales - Scan UPC barcodes and create invoices through HelloCash integration">
+    <meta property="og:image" content="./heierling.png">
     <meta property="og:url" content="https://truesightdao.github.io/point-of-sales-integrations/">
     <meta property="og:type" content="website">
     
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="https://github.com/TrueSightDAO/.github/blob/main/assets/20240612_truesight_dao_logo_square.png?raw=true">
+    <link rel="icon" type="image/png" href="./heierling.png">
     <style>
         * {
             margin: 0;
@@ -275,9 +275,9 @@
 <body>
     <div class="container">
         <div class="header">
-            <img src="https://github.com/TrueSightDAO/.github/blob/main/assets/20240612_truesight_dao_logo_square.png?raw=true" alt="TrueSight DAO Logo" height="200px" style="margin-bottom: 15px; border-radius: 8px;">
-            <h1>Point of Sales Integrations</h1>
-            <p>Streamline your point of sales operations with our integrated tools</p>
+            <img src="./heierling.png" alt="Heierling Logo" height="200px" style="margin-bottom: 15px; border-radius: 8px;">
+            <h1>Heierling Point of Sales</h1>
+            <p>Scan UPC barcodes and create invoices through our HelloCash integration</p>
         </div>
 
         <!-- Status Section -->
@@ -338,7 +338,7 @@
         </div>
 
         <div class="footer">
-            <p>Part of the <a href="../dapp/index.html">TrueSight DAO Ecosystem</a></p>
+            <p>Part of the <a href="https://dapp.truesight.me">TrueSight DAO Ecosystem</a></p>
             <p>&copy; 2024 Point of Sales Integrations. All rights reserved.</p>
         </div>
     </div>
@@ -371,9 +371,16 @@
             // Debug: Show all localStorage keys
             console.log('All localStorage keys:', Object.keys(localStorage));
             console.log('All localStorage values:', Object.entries(localStorage));
+            console.log('=== INDEX.HTML DEBUG ===');
+            console.log('publicKey exists:', !!localStorage.getItem('publicKey'));
+            console.log('privateKey exists:', !!localStorage.getItem('privateKey'));
+            console.log('employeeName:', localStorage.getItem('employeeName'));
+            console.log('employeeId:', localStorage.getItem('employeeId'));
             
             const digitalSignature = localStorage.getItem('publicKey');
+            const privateKey = localStorage.getItem('privateKey');
             console.log('Digital signature from localStorage:', digitalSignature ? 'Found' : 'Not found');
+            console.log('Private key from localStorage:', privateKey ? 'Found' : 'Not found');
             if (digitalSignature) {
                 console.log('Signature value:', digitalSignature.substring(0, 20) + '...');
             }
@@ -384,11 +391,36 @@
             const quickInvoiceBtn = document.getElementById('quickInvoiceBtn');
             const invoiceModuleBtn = document.getElementById('invoiceModuleBtn');
             
-            if (digitalSignature) {
+            // If either key is missing, treat as no signature created yet
+            if (!digitalSignature || !privateKey) {
+                console.log('Missing digital signature or private key - treating as no signature created yet');
+                // Clear any partial data to ensure clean state
+                localStorage.removeItem('publicKey');
+                localStorage.removeItem('privateKey');
+                localStorage.removeItem('employeeName');
+                localStorage.removeItem('employeeId');
+                
+                // Show not registered status
+                statusIcon.textContent = '❌';
+                statusIcon.style.background = '#f8d7da';
+                statusIcon.style.color = '#721c24';
+                statusText.textContent = 'Device not registered';
+                statusBtn.textContent = 'Register Device';
+                statusBtn.onclick = () => window.location.href = 'register_device.html';
+                statusBtn.style.display = 'inline-block';
+                quickInvoiceBtn.style.display = 'none';
+                invoiceModuleBtn.style.display = 'none';
+                return;
+            }
+            
+            if (digitalSignature && privateKey) {
                 console.log('Verifying signature with server...');
+                console.log('Signature being verified:', digitalSignature.substring(0, 50) + '...');
                 // Verify signature with server
                 const verification = await verifyDigitalSignature(digitalSignature);
                 console.log('Server verification result:', verification);
+                console.log('Verification.valid:', verification.valid);
+                console.log('Verification keys:', Object.keys(verification));
                 
                 if (verification.valid) {
                     // Device is registered and verified
@@ -420,18 +452,20 @@
                     invoiceModuleBtn.textContent = 'Register with Admin First';
                 }
             } else {
-                console.log('No signature found, showing registration prompt');
-                // No signature in localStorage
+                console.log('Signature verification failed, showing registration prompt');
+                // Signature exists but verification failed
                 statusIcon.textContent = '⚠️';
                 statusIcon.style.background = '#fff3cd';
-                statusText.textContent = 'Device not registered. Please register your device to start creating invoices.';
+                statusText.textContent = 'Device signature not registered with server. Please register with admin.';
+                statusBtn.textContent = 'Register with Admin';
+                statusBtn.onclick = () => window.location.href = 'register_device.html';
                 statusBtn.style.display = 'inline-block';
                 
                 // Disable invoice creation
                 quickInvoiceBtn.disabled = true;
                 quickInvoiceBtn.style.opacity = '0.6';
                 quickInvoiceBtn.style.cursor = 'not-allowed';
-                invoiceModuleBtn.textContent = 'Register Device First';
+                invoiceModuleBtn.textContent = 'Register with Admin First';
             }
         }
 

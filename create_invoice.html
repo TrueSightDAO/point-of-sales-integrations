@@ -283,6 +283,42 @@
             100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
         }
 
+        .scan-feedback {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            z-index: 1000;
+            animation: feedbackSlideIn 0.3s ease-out;
+        }
+
+        .scan-feedback.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .scan-feedback.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @keyframes feedbackSlideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
         .modal {
             position: fixed;
             top: 0;
@@ -1317,6 +1353,7 @@
                 <div class="scanner-controls">
                     <button class="btn" id="startScanBtn" onclick="startCamera()">📷 Start Camera</button>
                     <button class="btn btn-secondary" id="scanAnotherBtn" onclick="enableScanning()" style="display: none;">🔍 Scan Another</button>
+                    <button class="btn btn-secondary" onclick="showManualUPCEntry()">⌨️ Enter UPC Manually</button>
                 </div>
                 <div class="loading" id="scanLoading">
                     <div class="spinner"></div>
@@ -1819,6 +1856,9 @@
         let stream = null;
         let isScanning = false;
         let scanInterval = null;
+        let lastScannedCode = null;
+        let lastScanTime = 0;
+        let scanTimeout = null;
 
         // Switch between manual and camera tabs
         function switchTab(tab) {
@@ -1972,36 +2012,42 @@
             
             console.log('Video element found, initializing QuaggaJS...');
             
-            // Initialize QuaggaJS
+            // Initialize QuaggaJS with optimized settings for UPC scanning
             Quagga.init({
                 inputStream: {
                     name: "Live",
                     type: "LiveStream",
                     target: document.querySelector('#cameraVideo'),
                     constraints: {
-                        width: 640,
-                        height: 480,
-                        facingMode: "environment"
+                        width: { ideal: 1280, min: 640 },
+                        height: { ideal: 720, min: 480 },
+                        facingMode: "environment",
+                        focusMode: "continuous"
                     },
                 },
                 locator: {
-                    patchSize: "medium",
-                    halfSample: true
+                    patchSize: "large",
+                    halfSample: false
                 },
-                numOfWorkers: 2,
-                frequency: 10,
+                numOfWorkers: 4,
+                frequency: 3, // Reduced frequency for better accuracy
                 decoder: {
                     readers: [
-                        "code_128_reader",
-                        "ean_reader",
-                        "ean_8_reader",
-                        "code_39_reader",
-                        "code_39_vin_reader",
-                        "codabar_reader",
                         "upc_reader",
-                        "upc_e_reader",
-                        "i2of5_reader"
-                    ]
+                        "upc_e_reader", 
+                        "ean_reader",
+                        "ean_8_reader"
+                    ],
+                    debug: {
+                        showCanvas: false,
+                        showPatches: false,
+                        showFoundPatches: false,
+                        showSkeleton: false,
+                        showLabels: false,
+                        showPatchLabels: false,
+                        showBoundingBox: false,
+                        showBoundingBoxes: false
+                    }
                 },
                 locate: true
             }, function(err) {
@@ -2025,32 +2071,64 @@
                     
                     // Handle different data structures from QuaggaJS
                     let code;
+                    let confidence = 0;
+                    
                     if (result && result.codeResult && result.codeResult.code) {
                         code = result.codeResult.code;
+                        confidence = result.codeResult.quality || 0;
                     } else if (result && result.code) {
                         code = result.code;
+                        confidence = result.quality || 0;
                     } else if (typeof result === 'string') {
                         code = result;
+                        confidence = 100; // Assume high confidence for string results
                     } else {
                         console.error('Unexpected barcode detection result:', result);
                         return;
                     }
                     
-                    console.log('Barcode detected:', code);
+                    console.log('Barcode detected:', code, 'Confidence:', confidence);
+                    
+                    // Check confidence threshold (minimum 30% confidence)
+                    if (confidence < 30) {
+                        console.log('Low confidence barcode detected, ignoring:', code, 'Confidence:', confidence);
+                        showScanFeedback('❌ Low quality scan, try again', 'error');
+                        return;
+                    }
+                    
+                    // Normalize and clean the barcode
+                    code = normalizeBarcode(code);
+                    
+                    // Validate the barcode
+                    if (!validateBarcode(code)) {
+                        console.log('Invalid barcode detected, ignoring:', code);
+                        showScanFeedback('❌ Invalid barcode format', 'error');
+                        return;
+                    }
+                    
+                    // Prevent duplicate scans within 2 seconds
+                    const currentTime = Date.now();
+                    if (lastScannedCode === code && (currentTime - lastScanTime) < 2000) {
+                        console.log('Duplicate scan detected, ignoring:', code);
+                        return;
+                    }
+                    
+                    // Update last scan tracking
+                    lastScannedCode = code;
+                    lastScanTime = currentTime;
+                    
+                    // Clear any existing timeout
+                    if (scanTimeout) {
+                        clearTimeout(scanTimeout);
+                    }
                     
                     // Show visual success indicator
-                    const cameraContainer = document.querySelector('.camera-container');
-                    const successIndicator = document.createElement('div');
-                    successIndicator.className = 'scan-success';
-                    successIndicator.textContent = `✅ Barcode detected: ${code}`;
-                    cameraContainer.appendChild(successIndicator);
+                    showScanFeedback(`✅ Barcode detected: ${code}`, 'success');
                     
-                    // Remove success indicator after animation
-                    setTimeout(() => {
-                        if (successIndicator.parentNode) {
-                            successIndicator.parentNode.removeChild(successIndicator);
-                        }
-                    }, 2000);
+                    // Set timeout to re-enable scanning if no action is taken
+                    scanTimeout = setTimeout(() => {
+                        enableScanning();
+                    }, 5000);
                     
                     // Process the detected UPC code
                     processScannedUPC(code);
@@ -2060,9 +2138,98 @@
                     
                 } catch (error) {
                     console.error('Error processing barcode detection:', error);
-                    showAlert('Error processing barcode: ' + error.message, 'error');
+                    showScanFeedback('❌ Error processing barcode', 'error');
                 }
             });
+        }
+
+        // Normalize and clean barcode data
+        function normalizeBarcode(code) {
+            if (!code || typeof code !== 'string') {
+                return '';
+            }
+            
+            // Remove all non-digit characters
+            let normalized = code.replace(/\D/g, '');
+            
+            // Handle common UPC format issues
+            // Remove leading zeros that might be added by some scanners
+            normalized = normalized.replace(/^0+/, '');
+            
+            // If we removed too many zeros, add one back for proper UPC format
+            if (normalized.length < 8) {
+                normalized = '0' + normalized;
+            }
+            
+            // Ensure proper UPC-A format (12 digits) by padding with zeros
+            if (normalized.length === 11) {
+                normalized = '0' + normalized;
+            }
+            
+            // Ensure proper UPC-E format (8 digits) by padding with zeros
+            if (normalized.length === 7) {
+                normalized = '0' + normalized;
+            }
+            
+            console.log('Barcode normalized from', code, 'to', normalized);
+            return normalized;
+        }
+
+        // Validate barcode format
+        function validateBarcode(code) {
+            if (!code || typeof code !== 'string') {
+                return false;
+            }
+            
+            // Remove any whitespace
+            code = code.trim();
+            
+            // Check for minimum length (UPC codes are typically 8-14 digits)
+            if (code.length < 8 || code.length > 14) {
+                return false;
+            }
+            
+            // Check if it contains only digits (for UPC/EAN codes)
+            if (!/^\d+$/.test(code)) {
+                return false;
+            }
+            
+            // Additional validation for common UPC formats
+            // UPC-A: 12 digits
+            // UPC-E: 8 digits  
+            // EAN-13: 13 digits
+            // EAN-8: 8 digits
+            const validLengths = [8, 12, 13];
+            if (!validLengths.includes(code.length)) {
+                return false;
+            }
+            
+            return true;
+        }
+        
+        // Show scan feedback to user
+        function showScanFeedback(message, type) {
+            const cameraContainer = document.querySelector('.camera-container');
+            if (!cameraContainer) return;
+            
+            // Remove any existing feedback
+            const existingFeedback = cameraContainer.querySelector('.scan-feedback');
+            if (existingFeedback) {
+                existingFeedback.remove();
+            }
+            
+            // Create new feedback element
+            const feedback = document.createElement('div');
+            feedback.className = `scan-feedback ${type}`;
+            feedback.textContent = message;
+            cameraContainer.appendChild(feedback);
+            
+            // Remove feedback after delay
+            setTimeout(() => {
+                if (feedback.parentNode) {
+                    feedback.parentNode.removeChild(feedback);
+                }
+            }, type === 'error' ? 3000 : 2000);
         }
 
         // Process scanned UPC code
@@ -3014,6 +3181,23 @@ This contribution links a UPC barcode to an existing product in the inventory sy
             
             // Show alert for new invoice
             showAlert('Ready to create a new invoice. Camera is scanning for products!', 'success');
+        }
+
+        // Show manual UPC entry modal
+        function showManualUPCEntry() {
+            const upcCode = prompt('Enter UPC code manually:');
+            if (upcCode && upcCode.trim()) {
+                const trimmedCode = upcCode.trim();
+                
+                // Validate the manually entered UPC
+                if (!validateBarcode(trimmedCode)) {
+                    showAlert('Invalid UPC code format. Please enter a valid UPC code (8-13 digits).', 'error');
+                    return;
+                }
+                
+                // Process the manually entered UPC
+                processScannedUPC(trimmedCode);
+            }
         }
 
         // Test function to manually show success message (for debugging)
